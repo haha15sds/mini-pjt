@@ -84,12 +84,12 @@ copy .env.example .env
 
 positive·edge 11건, 채점 모델 Claude Haiku 4.5 (1차는 저장된 답변을 같은 모델로 다시 채점해 비교)
 
-| 지표 | 1차 | 2차 | 3차 | 4차 | 5차 | 6차 | 7차 (최종) |
-|---|---|---|---|---|---|---|---|
-| faithfulness | 0.241 | 0.734 | 0.853 | 0.893 | 0.886 | 0.892 | **0.836** |
-| answer_relevancy | 0.447 | 0.388 | 0.338 | 0.312 | 0.272 | 0.311 | 0.275 |
-| context_precision (with reference) | 0.600 | 0.503 | 0.524 | 0.508 | 0.512 | 0.512 | 0.512 |
-| context_recall | 0.667 | 0.909 | 0.909 | 0.939 | 0.939 | 0.939 | 0.909 |
+| 지표 | 1차 | 2차 | 3차 | 4차 | 5차 | 6차 | 7차 | 8차 | 9차 (최종) |
+|---|---|---|---|---|---|---|---|---|---|
+| faithfulness | 0.241 | 0.734 | 0.853 | 0.893 | 0.886 | 0.892 | 0.836 | 0.861 | **0.931** |
+| answer_relevancy | 0.447 | 0.388 | 0.338 | 0.312 | 0.272 | 0.311 | 0.275 | 0.290 | 0.314 |
+| context_precision (with reference) | 0.600 | 0.503 | 0.524 | 0.508 | 0.512 | 0.512 | 0.512 | 0.512 | 0.512 |
+| context_recall | 0.667 | 0.909 | 0.909 | 0.939 | 0.939 | 0.939 | 0.939 | 0.909 | 0.939 |
 
 - 1차 원본 보고서(Sonnet 채점): [evaluation/round1_report.md](evaluation/round1_report.md) — faithfulness 0.111
 - reference는 정답 장애 이름과 공식 문서 근거 요약으로 만들었다.
@@ -104,11 +104,13 @@ positive·edge 11건, 채점 모델 Claude Haiku 4.5 (1차는 저장된 답변�
 - 5차 (강사 힌트 집중 점검 반영: 코드가 '문제/문제 아님'까지 판정): **18 / 18 통과**, faithfulness 0.886 — [evaluation/round5_report.md](evaluation/round5_report.md)
 - 6차 (코드 리뷰 반영: 60초 상한 수정, 정상 시크릿 문의 오거절 수정): **18 / 18 통과**, faithfulness 0.892 — [evaluation/round6_report.md](evaluation/round6_report.md)
 - 7차 (불일치 대응: 문의 증상과 테넌트 상태가 맞지 않을 때 실제 문제는 알리되 단정하지 않음): **18 / 18 통과**, faithfulness 0.836 — [evaluation/round7_report.md](evaluation/round7_report.md)
+- 8차 (N4 오표시 수정 후 18건 전체 재실행): **18 / 18 통과**, faithfulness 0.861 — [evaluation/round8_report.md](evaluation/round8_report.md)
+- 9차 (승인 후 안내 문구 "관리자 승인에 따라 조치를 적용했습니다"): **18 / 18 통과**, faithfulness 0.931 — [evaluation/round9_report.md](evaluation/round9_report.md)
 - 불일치 점검(문의는 그대로, 시나리오만 다른 장애로 바꾼 8조합): 바람직한 답 0/8 → **7/8** — [evaluation/mismatch_report.md](evaluation/mismatch_report.md)
 - 강사 힌트 집중 점검(값 비교 원인 변형 20개, 같은 모호한 문의): checks 없음 14/20 → 비교값만 14/20 → **문제 판정까지 20/20** — [evaluation/stress_hint_report.md](evaluation/stress_hint_report.md)
 - 개선폭: 통과 **+4건**(1차→2차), faithfulness **0.241 → 0.893** / 주요 개선 사항: 평가기 판정 오류 수정, 마스킹 토큰 재탐지 버그 수정, F3·F4 구분 규칙, 원인별 근거 재검색, 테넌트 상태를 근거로 포함, 답변과 메타데이터 분리
 
-LLM-as-Judge (positive·edge 11건, judge Claude Sonnet 4.5, 1~5점): 정확성 5.00 · 근거성 5.00 · 실행 가능성 5.00 · 안전성 5.00 (6차, 4차는 4.82 · 5.00 · 4.82 · 5.00). judge는 답변 문장만 보고 장애 번호 표기 오류는 잡지 못해, 통과 여부는 규칙 판정으로 한다 — [round4_report.md](evaluation/round4_report.md) §6
+LLM-as-Judge (positive·edge 11건, judge Claude Sonnet 4.5, 1~5점): 정확성 5.00 · 근거성 5.00 · 실행 가능성 5.00 · 안전성 5.00 (6차, 4차는 4.82 · 5.00 · 4.82 · 5.00, 8차는 4.82 · 5.00 · 4.82 · 4.64 — 안전 감점은 E2 한 건으로, 승인 후 응답의 "조치를 적용했습니다" 문구를 judge가 표현상 문제로 본 것. 같은 문구에 7차는 5점. 문구를 "관리자 승인에 따라 조치를 적용했습니다"로 바꾼 9차는 4.82 · 5.00 · 4.73 · 5.00, 감점은 P2 한 건). judge는 답변 문장만 보고 장애 번호 표기 오류는 잡지 못해, 통과 여부는 규칙 판정으로 한다 — [round4_report.md](evaluation/round4_report.md) §6
 
 평가 세트: [evaluation/test_queries.csv](evaluation/test_queries.csv) (positive 7 · negative 4 · edge 4 · guardrail 3, 이 중 5건은 원인 이름만 본 별도 AI가 작성한 "AI 작성 준블라인드" 케이스로 튜닝 전에 고정)
 

@@ -656,3 +656,23 @@
 🔧 결과 파일: mismatch_results_v1(수정 전)·v2(2회차)·mismatch_results.json(3회차). 정식 18건 7차 회귀 확인 실행 중.
 🔧 7차 회귀(정식 18건): 18/18, AC-4 7/7, faithfulness 0.836(0.8 이상 8/11, 6차 0.892에서 하락 — 기준은 지킴), judge 4.82/5.0/4.82/5.0(P2 감점, 이전과 같은 지적). N4(가격 문의)에 불일치 안내가 잘못 붙어 '원인 후보가 없으면 안내 안 함'으로 수정, N1~N4 재실행 4/4·안내 0건.
 🔧 반영: mismatch_report.md(1·2·3회차 비교, 남은 한계 M01), round7_report.md §5, README(RAGAS 7차 열·7차 줄·M 세트 줄·구분자 표 M), SERVICE.md 규칙 R5를 '근거 없거나 증상과 맞지 않으면 확인 필요'로 확장(템플릿의 3~5건 유지), seed v1.6.0 D-16, 대시보드 7차.
+
+### 107. 18건 전체 재실행 (8차)
+
+👤 "18건 전체 다시 돌려줘."
+🔧 `CHECKPOINT_DB=eval_ckpt.sqlite run_eval.py --round 8 --ragas-model haiku` (567초) → **18/18**, AC-1 4/4, AC-4 7/7, 유출 0, faithfulness 0.861(7차 0.836), context_recall 0.939. N4 수정 포함 상태의 전체 회귀 확인.
+🔧 llm_judge → 4.82 · 5.00 · 4.82 · 4.64. 안전 감점은 E2 1건: 승인 후 응답의 "조치를 적용했습니다"를 표현 위반으로 봄(judge 사유에도 프로세스 문제 없음 명시, 7차는 같은 문구 5점) → judge 편차로 기록, 문구 개선은 제안만.
+🔧 반영: round8_report.md §5, README(RAGAS 8차 열·8차 줄·judge 줄), 대시보드 8차.
+
+### 108. 승인 후 조치 안내 문구 수정
+
+👤 "문구 고치기"
+🔧 src/tenant.py apply_fix 안내 문구 "조치를 적용했습니다" → "관리자 승인에 따라 조치를 적용했습니다"([추가 구현] 주석).
+🔧 승인 흐름 E2·G1·G3만 재실행(--no-ragas): 3/3 통과. judge E2 안전 1 → 3(나머지 5). judge는 미래형("적용 예정")을 권하나 실제로 적용된 뒤라 사실과 어긋나므로 따르지 않음. 결과는 round8_e2fix_results.json·round8_e2fix_judge.json, round8_report.md §5에 기록.
+
+### 109. 18건 전체 재실행 (9차)
+
+👤 "18건 전체 다시 돌려줘."
+🔧 run_eval --round 9 --ragas-model haiku (CHECKPOINT_DB=eval_ckpt.sqlite) → **18/18**, AC-1 4/4, AC-4 7/7, 유출 0, faithfulness 0.931(0.8 이상 9/11), answer_relevancy 0.314, context_recall 0.939.
+🔧 llm_judge → 4.82 · 5.00 · 4.73 · 5.00. E2 안전 5점 회복, 감점은 P2(정확 3·실행 2) 한 건, 이전과 같은 지적.
+🔧 반영: round9_report.md §5, README(RAGAS 9차 열·9차 줄·judge 줄), 대시보드 9차.

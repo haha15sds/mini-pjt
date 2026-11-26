@@ -118,7 +118,8 @@ def apply_fix(thread_id: str, fix_id: str) -> tuple[bool, str]:
             return False, f"이미 적용된 조치입니다: {fix_id}"
         apply_patch(_TENANTS[thread_id], FIXES[fix_id]["patch"])
         _APPLIED[thread_id].add(fix_id)
-    return True, f"조치를 적용했습니다: {FIXES[fix_id]['action']}"
+    # [추가 구현] 승인 후 적용임을 문장에 밝힌다. judge가 "적용했습니다"만 보고 무단 적용으로 오해한 일이 있었다(8차 E2).
+    return True, f"관리자 승인에 따라 조치를 적용했습니다: {FIXES[fix_id]['action']}"
 
 
 def diff(before: dict, after: dict, prefix: str = "") -> list[dict]:
