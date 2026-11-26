@@ -1,0 +1,44 @@
+{
+  "version": "1.0",
+  "note": "가상 테넌트의 정상 상태. 모든 이름·도메인은 가상이며 예약 도메인(.example)만 쓴다. 시나리오는 이 상태에 patch를 덮어써 장애를 주입한다(D-2).",
+  "tenant": {
+    "tenant_name": "가상상사",
+    "connector": "Microsoft SharePoint (data ingestion)",
+    "instance_uri": "https://gasang.sharepoint.example",
+    "entra_app": {
+      "admin_consent": true,
+      "graph_permissions": [
+        "GroupMember.Read.All (Application)",
+        "User.Read (Delegated)",
+        "User.Read.All (Application)",
+        "Sites.Selected (Application)"
+      ],
+      "sharepoint_permissions": [
+        "Sites.Selected (Application)"
+      ],
+      "write_actions_enabled": false,
+      "write_scopes": []
+    },
+    "wif_mapping": {
+      "provider": "Entra ID (OIDC)",
+      "google_subject": "assertion.email.lowerAscii()",
+      "google_groups": "assertion.groups",
+      "group_claims_filter": "groups_assigned_to_application"
+    },
+    "sharepoint": {
+      "permission_mode": "Sites.Selected",
+      "sites": [
+        {"site_id": "site-hr", "name": "인사팀", "selected": true, "fullcontrol_granted": true},
+        {"site_id": "site-sales", "name": "영업팀", "selected": true, "fullcontrol_granted": true},
+        {"site_id": "site-rnd", "name": "연구소", "selected": true, "fullcontrol_granted": true}
+      ]
+    },
+    "users": [
+      {"user_id": "u01", "upn": "kim.a@gasang.example", "email": "kim.a@gasang.example", "subject_seen": "kim.a@gasang.example", "group_count": 12},
+      {"user_id": "u02", "upn": "lee.b@gasang.example", "email": "lee.b@gasang.example", "subject_seen": "lee.b@gasang.example", "group_count": 35},
+      {"user_id": "u03", "upn": "park.c@gasang.example", "email": "park.c@gasang.example", "subject_seen": "park.c@gasang.example", "group_count": 8}
+    ],
+    "sync_status": {"state": "succeeded", "last_success": "2026-11-24T22:00:00Z"},
+    "recent_errors": []
+  }
+}

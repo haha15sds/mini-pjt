@@ -1,0 +1,71 @@
+{
+  "schema_version": 3,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "Gemini Enterprise 도입 4단계 — 무엇을 다루나(대상)와 언제인가(go-live 전후)",
+    "subtitle": "셋업 → 프로비저닝(사용자 계정 공급) → 온보딩 → 운영. 운영 중 변경은 같은 설정을 건드려도 '운영'으로 분류",
+    "locale": "ko",
+    "output": "mini-pjt_haha15/.archify/lifecycle-ge-setting-stages-20261125-135026/ge-setting-stages.html",
+    "quality_profile": "showcase"
+  },
+  "mainPath": ["setup", "prov", "onboard", "ops"],
+  "states": [
+    { "id": "setup", "type": "start", "label": "셋업", "sublabel": "무엇을 만들고 잇나", "tag": "환경·시스템 연결", "step": "01" },
+    { "id": "prov", "type": "active", "label": "프로비저닝", "sublabel": "사용자 계정·라이선스 공급", "tag": "누구에게 무엇을 주나", "step": "02" },
+    { "id": "onboard", "type": "active", "label": "온보딩", "sublabel": "어떻게 쓰게 하나", "tag": "사람·사용 정착", "step": "03" },
+    { "id": "ops", "type": "success", "label": "운영", "sublabel": "go-live 뒤 변화", "tag": "지속", "step": "04" },
+    { "id": "change", "type": "active", "label": "운영 중 변경", "sublabel": "이메일·그룹·사이트·옵션", "tag": "go-live 뒤" },
+    { "id": "diag", "type": "decision", "label": "설정 진단", "sublabel": "이번 구현 범위", "tag": "셋업·운영" }
+  ],
+  "transitions": [
+    { "id": "setup-prov", "from": "setup", "to": "prov", "label": "테스트 검색 성공" },
+    { "id": "prov-onboard", "from": "prov", "to": "onboard", "label": "라이선스·권한 배정" },
+    { "id": "onboard-ops", "from": "onboard", "to": "ops", "label": "go-live", "variant": "emphasis" },
+    { "id": "setup-diag", "from": "setup", "to": "diag", "label": "연결 실패", "note": "F1 관리자 동의 · F3 subject 매핑", "variant": "security" },
+    { "id": "diag-setup", "from": "diag", "to": "setup", "label": "승인 후 재시도" },
+    { "id": "ops-change", "from": "ops", "to": "change", "label": "설정·사용자 변경", "variant": "dashed" },
+    { "id": "change-ops", "from": "change", "to": "ops", "label": "반영 완료" },
+    { "id": "change-diag", "from": "change", "to": "diag", "label": "변경 후 장애", "note": "F2 옵션 · F4 식별자 · F5 그룹 · F6 사이트", "variant": "security" },
+    { "id": "diag-ops", "from": "diag", "to": "ops", "label": "승인 후 복구" }
+  ],
+  "cards": [
+    {
+      "dot": "slate",
+      "title": "구분 기준 2개",
+      "items": [
+        "대상: 환경(만들고 잇기) → 계정(누구에게 주나) → 사람(쓰게 하기) → 변화(시간)",
+        "시점: go-live 뒤의 모든 변경은 설정을 건드려도 '운영'. 셋업과 운영이 겹치지 않게 하는 규칙",
+        "용어: 여기서 프로비저닝은 '사용자 프로비저닝'(계정·라이선스·역할 공급) 뜻. 프로젝트·앱 같은 자원 생성은 셋업에 포함",
+        "단계 이름은 이 프로젝트의 구분 틀이며 Google 문서의 공식 분류인지는 확인 필요"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "단계별 예시",
+      "items": [
+        "셋업: Cloud 프로젝트·Gemini Enterprise 앱 생성, Entra ID + WIF 속성 매핑, SharePoint 앱 권한·관리자 동의, 사이트 범위, 데이터 스토어",
+        "프로비저닝: 사용자·그룹 계정 공급(SCIM 등), 라이선스 배정, 관리자·사용자 IAM 역할",
+        "온보딩: 공지·교육, 첫 사용 확인, 사용 정착",
+        "운영: 이메일 변경, 그룹 증가, 사이트 추가, 옵션 변경, 모니터링·장애 대응"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "장애 F1~F6 위치",
+      "items": [
+        "셋업: F1 관리자 동의 미부여, F3 subject를 객체 ID로 매핑",
+        "운영: F4 식별자 변경, F5 그룹 클레임 한도 초과",
+        "셋업 또는 운영: F2 쓰기 옵션, F6 사이트 권한 (테스트 메일은 '어제 켰다', '지난주 추가'라 운영 쪽)"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "이번 구현과 확장",
+      "items": [
+        "이번 구현: 셋업·운영 단계의 SharePoint 커넥터 설정 문의 진단",
+        "확장: 프로비저닝(계정 미동기화·라이선스 미배정·역할 부족), 온보딩(사용 안내·자주 묻는 질문) 추가",
+        "조치는 모두 관리자 승인 후에만 실행 (HITL, 이번 구현은 가상 테넌트)"
+      ]
+    }
+  ]
+}

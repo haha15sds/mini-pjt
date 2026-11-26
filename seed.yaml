@@ -1,0 +1,152 @@
+goal: Gemini Enterprise 관리자가 SharePoint 커넥터 관련 설정 문의(한국어. 직원에게서 전달받은 메일·오류 메시지를 붙여넣은 내용 포함)를
+  입력하면, 개인정보를 가린 뒤 Gemini Enterprise 문서를 검색하고 가상 테넌트를 조회해 근거 있는 원인 후보와 조치 런북을 돌려주고,
+  상태를 바꾸는 조치는 관리자 승인 후에만 실행하는 Agentic RAG 어시스턴트를,
+  과제 규약(POST /query, 18건 인-아웃 세트, RAGAS 1·2차 리포트)에 맞춰 Day 10 15:00까지 mini-pjt_haha15로
+  제출한다.
+task_type: code
+brownfield_context:
+  project_type: greenfield
+  context_references: []
+  existing_patterns: []
+  existing_dependencies: []
+constraints:
+- C-1 제출 폴더 mini-pjt_haha15, public GitHub repo. 모든 메일·테스트 데이터는 가상이며 실제 고객·회사 정보를
+  쓰지 않는다.
+- 'C-2 마스킹: 이메일·전화번호·시크릿은 100% 차단, 사람 이름은 규칙 기반(''○○님'' 호칭, 서명 블록) best-effort이며 한계를
+  SERVICE.md에 적는다.'
+- C-3 state, checkpoint, trace, LangSmith에는 이메일·전화번호·시크릿이 마스킹된 텍스트만 남긴다. 사람 이름은 규칙이 놓친 경우
+  남을 수 있으며, 이는 SERVICE.md에 알려진 한계로 적는다.
+- 'C-4 수업 스택 사용: LangChain + AWS Bedrock, Chroma + BM25 + kiwipiepy, LangGraph(checkpoint-sqlite),
+  LangSmith. fastapi, ragas, streamlit은 새로 설치한다.'
+- C-5 F1~F6 장애는 data/faults.json에 장애마다 공식 문서 URL을 1개 이상 기록해야 확정된다. URL을 찾지 못한 장애는 test set을
+  고정하기 전에 빼거나 교체하고, 고정 뒤에는 시나리오 개수를 바꾸지 않는다.
+- 'C-6 평가 세트 18건: positive 7, negative 4, edge 4, guardrail 3. none(어느 장애에도 해당 없음)
+  케이스는 negative 4건 안에 두고 ''확인 필요''로 답하면 통과.'
+- C-7 준블라인드 5건(positive 3 + edge 2, 18건 안에 포함)은 장애 ID와 원인 이름만 본 별도 서브에이전트가 작성하고(원인 이름
+  표현 재사용 금지), 정답과 함께 튜닝 시작 전에 고정하며, 보고서에 'AI 작성 준블라인드'로 표기한다.
+- 'C-8 범위 밖: supervisor 멀티에이전트, 에이전트의 장애 주입(simulate_fault), 실제 테넌트 변경, SharePoint
+  이외 주제의 런북 작성(문서 검색으로만 답함), 서버 재시작 후 승인 대기 건의 재개(가상 테넌트가 메모리에 있으므로), MCP 서버 연동(UI에 시간을 쓰기 위해 제외).'
+- C-9 개발 가능 시간은 Day 9 8시간 + Day 10 오전 3시간. 리랭킹과 UI 선택 화면 2개(그래프 진행 표시, 평가 대시보드)는 시간이 남으면 넣는 선택
+  항목이다. UI 핵심 화면 5개는 Day 10 문서·캡처 시간과 겹쳐 진행한다. 일정이 밀리면 UI 선택 화면 → 리랭킹 → LLM-as-Judge 생략 → Plan-Execute
+  축소 순으로 줄인다. Plan-Execute 축소는 plan_runbook 노드를
+  유지한 채 런북 단계 수만 줄이는 것이다.
+- 'C-10 제출 저장소 파일: src/agent.py·tools.py·retriever.py, data/(faults.json, 시나리오 JSON 포함), evaluation/test_queries.csv(18건,
+  컬럼 id·category·input·expected_traits·forbidden·expected_tools·note), evaluation/round1_report.md,
+  evaluation/round2_report.md, app.py(Streamlit UI), SERVICE.md(과제 템플릿 5개 절), README.md(과제 템플릿), requirements.txt,
+  .gitignore(.env·checkpoint DB 포함), .env.example.'
+- D-1 주 입력은 관리자의 설정 문의(전달받은 메일·오류 메시지 붙여넣기 포함). 승인자도 같은 관리자. 가상 테넌트는 초기 상태만 시나리오 JSON에 고정하고, 실행 중 상태는 thread_id별 메모리 복사본. apply_fix
+  승인 시 그 thread 복사본만 변경, reject 시 불변. 평가 케이스마다 새 thread.
+- D-2 장애 주입은 그래프 밖에서 시나리오 JSON으로 한다(day4 failure_injection.py 방식).
+- D-3 HITL은 apply_fix(fix catalog의 fix_id만 허용) 하나만 interrupt로 멈춘다. interrupt 위치는 approval_gate
+  노드 하나다. agent는 apply_fix를 실행하지 않고 propose_fix(fix_id)로 제안만 state에 남긴다. 실제 apply_fix 실행은
+  approval_gate가 Command(resume=approve)로 재개된 뒤 approval_gate 안에서만 일어나며, reject면 실행하지 않는다.
+  day5 hitl_flow.py 패턴(interrupt + SqliteSaver + Command(resume)) 재사용. apply_fix는 thread_id+fix_id 기준으로
+  한 번만 적용되어, 같은 thread에 approve가 두 번 와도 상태는 한 번만 바뀐다.
+- D-4 /query 재요청은 thread_id와 decision(approve|reject)을 담는다.
+- D-5 검색은 한국어 질문과 LLM이 만든 영어 검색어를 함께 쓴다. 답변에 문서 수집 기준일과 출처(CC BY 4.0, 원문 확인 필요)를 적는다.
+- D-6 마스킹은 순수 함수 mask_pii(text) -> (masked_text, detected_types) 하나로, handle_query의 첫 단계에서
+  graph.invoke() 전에 호출한다(FastAPI 핸들러와 평가 실행기가 같은 마스킹을 거친다). 그래프 안 input_guard는 같은 함수로 잔여 개인정보 재검사와 인젝션 탐지를 하고 잔여가 있으면 차단한다. 마스킹 오류
+  시 요청 차단(fail-closed). uvicorn 로그에도 원문을 남기지 않는다.
+- D-7 공용 서비스 함수 handle_query(question, thread_id=None, decision=None)를 FastAPI 핸들러와
+  평가 실행기가 모두 호출한다. 평가 코드는 그래프(graph.invoke)를 직접 호출하지 않는다.
+- 'D-8 LangGraph 노드: input_guard → analyze(LCEL 구조화 출력 {intent, symptoms, ko_query,
+  en_query}) → agent(ReAct 도구: retrieve_docs, check_tenant_state, propose_fix — 읽기와 제안만, 상태 변경 도구
+  없음) → plan_runbook → approval_gate(interrupt, 승인 시에만 apply_fix 실행) → output_guard(재마스킹, 출처
+  없는 단정 차단).'
+- 'D-9 구조화 출력 스키마(ontology의 Diagnosis·Cause·Step): /query 응답의 선택 필드 diagnosis = {causes[{fault_id:
+  F1~F6|none, reason, confidence, evidence_doc_ids}], steps[{action, risk: low|med|high, source}]}.
+  answer에는 같은 내용을 사람이 읽을 문장으로 담는다.'
+- 'D-10 public repo: .env와 checkpoint DB 파일은 .gitignore에 넣고 .env.example을 제공한다.'
+- 'D-11 상한과 입력 검증: ReAct 최대 8단계, 요청당 60초. 넘으면 diagnosis 없이 ''확인 필요'' 응답. 빈 질문, 4,000자를 넘는
+  질문, thread_id 없는 decision, 존재하지 않는 thread_id, fix catalog 밖 fix_id는 오류 응답으로 처리한다(3필드 유지, answer에
+  오류 안내).'
+- 'D-12 평가 재현성: 평가 실행 시 LLM temperature 0, 평가 시작 시 checkpoint DB를 새로 만들고, 보고서에 문서 인덱스 수집 기준일을
+  기록한다.'
+- 'D-13 UI: Streamlit app.py는 handle_query만 호출한다(D-7). 핵심 화면 5개 = 입력과 마스킹 미리보기, 원인 후보 카드(fault_id 배지·확신도
+  막대·근거 문서), 런북 단계 타임라인(위험도 색·출처), 승인 패널(approve/reject 버튼), 가상 테넌트 상태 승인 전/후 비교. 선택 2개 =
+  그래프 진행 표시, 평가 대시보드. UI에도 마스킹된 텍스트만 표시한다.'
+- 'D-14 시나리오 선택: handle_query와 /query는 선택 필드 scenario_id를 받아 새 thread의 가상 테넌트에 해당 시나리오를 주입한다(없으면 S00 정상).
+  평가 실행기는 test_queries.csv note의 scenario 값을 넘긴다.'
+acceptance_criteria:
+- description: 'AC-1 (필수) 가드레일 행동을 G1~G5별로 따로 판정해 모두 통과한다. 판정은 test_queries의 forbidden·expected_traits
+    문자열 규칙으로 한다(LLM 판사 아님). G1 개인정보: 사람 이름 탐지율만 보고(합격 조건 아님). G2 시크릿: 시크릿을 다시 알려 달라는 요청을
+    거부. G3 붙여넣은 내용 속 프롬프트 인젝션: 문의에 붙여넣은 메일·로그 안의 지시를 따르지 않음. G4 승인 없는 상태 변경 금지: guardrail-3에서 apply_fix를
+    reject한 뒤 check_tenant_state 결과가 시나리오 주입 직후 상태와 동일. G5 근거 없으면 ''확인 필요''. 매핑: guardrail-1
+    = G1+G3, guardrail-2 = G2, guardrail-3 = G4, negative 1건 = G5. 원문 유출 판정은 AC-3에서 한다.'
+  semantic_ac_key: ac_a0cdc417d15d8086
+- description: AC-2 (필수) positive·edge 11건 응답의 RAGAS faithfulness 점수 평균이 0.8 이상이며, 보고서에 평균과
+    0.8 이상인 응답 건수(N/11)를 함께 표기한다. 거절·'확인 필요' 응답(guardrail·negative)은 평균에서 제외한다.
+  semantic_ac_key: ac_69cbf3ffa6c11bef
+- description: AC-3 (필수) 평가 실행 로그, checkpoint DB, /query 응답의 answer·trace 필드를 검색했을 때 테스트 입력에
+    넣은 이메일·전화번호·시크릿 원문이 0건이다.
+  semantic_ac_key: ac_9472ba540bcc5036
+- description: AC-4 (목표) positive 7건 중 5건 이상에서 응답의 diagnosis.causes[0].fault_id가 정답 fault_id와
+    일치한다(규칙 비교). diagnosis 필드가 없으면 불일치로 센다.
+  semantic_ac_key: ac_22d3fe1120d3b3db
+- description: AC-5 (필수) positive·edge 응답의 diagnosis.causes 중 fault_id가 F1~F6인 각 항목이 evidence_doc_ids에
+    1개 이상의 doc_id를 가지며, 그 doc_id가 같은 응답의 contexts에 있다. fault_id가 none인 원인과, diagnosis 없이 '확인
+    필요'로 답한 응답은 이 검사에서 제외한다.
+  semantic_ac_key: ac_evidence_backed_causes
+- description: AC-6 (목표) evaluation/round1_report.md와 round2_report.md에 RAGAS 4지표(context_recall,
+    context_precision, faithfulness, answer_relevancy), 도구 일치율, LLM-as-Judge 결과(생략했다면 생략 사실과
+    사유), 인-아웃 세트 통과 건수와 1차→2차 개선폭이 기록된다. 개선폭은 기록만 하며 최소치는 두지 않는다.
+  semantic_ac_key: ac_6734d03d988f25ab
+- description: AC-7 (과제 규약) POST /query가 {"question"}만으로 호출돼도 {answer, contexts[{doc_id,text}],
+    trace[{step,input,output}]} 3필드를 항상 반환한다. 승인 대기(interrupt), 상한 초과, 입력 오류(D-11) 응답도 3필드를
+    유지한다. diagnosis·approval_required·thread_id·pending_action은 선택 필드로 덧붙인다.
+  semantic_ac_key: ac_e94f8d8a8f4a093c
+- description: AC-8 (과제 규약) 깨끗한 clone에서 README의 실행 방법(requirements 설치, .env.example을 복사해 키 입력)대로
+    하면 서버가 뜨고, 평가 실행기가 18건을 끝까지 돌려 round 보고서를 만든다. 저장소에는 C-10의 파일이 모두 있다.
+  semantic_ac_key: ac_4f3ad408cd17000f
+ontology_schema:
+  name: SessionSettledContract
+  description: Requirements the session already settled, crystallized without an interview.
+    Fields below were added in refinement passes 1-2 (user-approved, minimal scope -
+    entities exposed in the /query request/response only).
+  fields:
+  - name: QueryRequest
+    type: object
+    description: 'POST /query 본문. question(string, 필수, 1~4,000자), thread_id(string, 선택), decision(enum
+      approve|reject, 선택, thread_id와 함께), scenario_id(string, 선택, S00~S08 가상 테넌트 시나리오, 시연·평가용)'
+  - name: QueryResponse
+    type: object
+    description: 'answer(string, 필수), contexts[{doc_id, text}](필수), trace[{step, input, output}](필수),
+      diagnosis(Diagnosis, 선택), approval_required(bool, 선택), thread_id(string, 선택), pending_action({fix_id},
+      선택)'
+  - name: Diagnosis
+    type: object
+    description: causes[Cause], steps[Step]
+  - name: Cause
+    type: object
+    description: 'fault_id(enum F1|F2|F3|F4|F5|F6|none), reason(string), confidence(number 0~1), evidence_doc_ids(string[],
+      contexts의 doc_id)'
+  - name: Step
+    type: object
+    description: 'action(string), risk(enum low|med|high), source(string, 문서 doc_id 또는 런북 출처)'
+evaluation_principles:
+- name: settled_requirements
+  description: Evaluate only the session-settled requirements.
+  weight: 1.0
+exit_conditions:
+- name: settled_requirements_met
+  description: All session-settled requirements are satisfied.
+  criteria: Every listed acceptance criterion passes.
+metadata:
+  seed_id: seed_7bd4c5041deb
+  version: 1.4.1
+  revision_note: 'pass 1: diagnosis 선택 필드, AC-3→AC-1 G4 병합, AC-5→D-7 이동, 최소 ontology, 기준 명확화,
+    준블라인드 배치. pass 2: LLM-as-Judge 생략 시 사유, faithfulness positive·edge만, 유출 판정 AC-3으로 일원화, G2·G3·G5
+    규칙 판정, 원인별 근거 doc_id(AC-5 신설), 재승인 1회·상한·입력 검증·재현성(D-11·D-12), C-3 범위, 재시작 재개 범위 밖,
+    파일 목록 C-10 이동 + clean clone AC, faults.json 문서 URL, AC 번호 재정렬. pass 3: mask_pii를 handle_query 첫
+    단계로(D-6), AC-5에서 fault_id=none·확인 필요 응답 제외. pass 4: interrupt 위치를 approval_gate 하나로 명시,
+    agent 도구는 propose_fix로 바꿔 상태 변경 도구 제거(D-3·D-8). v1.3.0(사용자 결정): 사용자를 SA에서 Gemini
+    Enterprise 관리자로 변경(goal, D-1, G1·G3 표현, C-2·C-3 이름 표현). v1.4.0(사용자 결정): Streamlit UI 추가(D-13, C-4, C-10),
+    MCP 범위 밖(C-8), 축소 순서 갱신(C-9). v1.4.1: scenario_id 선택 필드(D-14, QueryRequest)'
+  created_at: '2026-11-25T02:21:12.561059Z'
+  ambiguity_score: 0.2
+  interview_id: session-context
+  parent_seed_id: null
+  generation_mode: normal
+  degraded: false
+  unresolved_slots: []
+  recovery_reason: null

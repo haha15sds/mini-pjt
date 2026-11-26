@@ -1,0 +1,80 @@
+{
+  "version": "1.0",
+  "collected_at": "2026-11-25",
+  "scope": "Gemini Enterprise Microsoft SharePoint 커넥터 (data ingestion, Entra ID + Workforce Identity Federation)",
+  "note": "모든 장애는 가상 테넌트 시뮬레이션용이다. 고객 메일·테넌트 값은 모두 가상이다. 공식 문서 페이지의 최종 업데이트 날짜는 추출하지 못해 collected_at을 기준일로 쓴다. 문서 라이선스(CC BY 4.0)는 원문 확인 필요.",
+  "faults": [
+    {
+      "fault_id": "F1",
+      "name": "Entra 앱에 테넌트 전체 관리자 동의(admin consent) 미부여",
+      "symptom": "사용자가 연결할 때 'Need admin approval' 화면이 뜨거나, 연결 후 인증이 되지 않는다.",
+      "doc_urls": [
+        "https://docs.cloud.google.com/gemini/enterprise/docs/connectors/ms-sharepoint/third-party-config"
+      ],
+      "evidence_note": "등록한 앱에 테넌트 전체 관리자 동의를 부여해야 한다고 명시. 'Need admin approval' 문제 해결 항목에서 데이터 스토어를 지우고 다시 만들어도 해결되지 않는다고 설명.",
+      "fix_id": "grant_admin_consent",
+      "fix_risk": "med"
+    },
+    {
+      "fault_id": "F2",
+      "name": "쓰기 동작(actions)을 켰는데 대응하는 쓰기 권한(scope)이 없음",
+      "symptom": "데이터 스토어를 만든 뒤 인증 오류와 동기화 오류가 함께 난다.",
+      "doc_urls": [
+        "https://docs.cloud.google.com/gemini/enterprise/docs/connectors/ms-sharepoint/set-up-data-store",
+        "https://docs.cloud.google.com/gemini/enterprise/docs/connectors/ms-sharepoint/third-party-config"
+      ],
+      "evidence_note": "데이터 스토어 설정 문서가 쓰기 동작을 켠 채 해당 쓰기 scope를 두지 않으면 인증·동기화 오류가 난다고 경고. 구성 문서에 actions용 위임 쓰기 권한 목록(Sites.ReadWrite.All 등)이 있음.",
+      "fix_id": "disable_write_actions",
+      "fix_risk": "low",
+      "replaces": "초기 후보 '클라이언트 시크릿 만료'는 SharePoint 문서에 만료 시 조치가 없어 교체(2026-11-25)"
+    },
+    {
+      "fault_id": "F3",
+      "name": "WIF 속성 매핑 오류: google.subject를 Entra 객체 ID(GUID)로 매핑",
+      "symptom": "로그인 시 403 오류가 나고, 라이선스가 중복으로 소비된다.",
+      "doc_urls": [
+        "https://docs.cloud.google.com/gemini/enterprise/docs/configure-identity-provider"
+      ],
+      "evidence_note": "google.subject를 Entra 객체 ID(GUID)로 매핑하지 말라고 경고(403 로그인 오류, 라이선스 중복 소비). 소문자 이메일 매핑을 권장.",
+      "fix_id": "remap_subject_to_lower_email",
+      "fix_risk": "high"
+    },
+    {
+      "fault_id": "F4",
+      "name": "사용자 식별자 불일치(이메일/UPN 변경, 대소문자 차이)",
+      "symptom": "특정 사용자만 401 오류가 나거나 새 사용자처럼 취급되어 이전 설정·라이선스가 보이지 않는다.",
+      "doc_urls": [
+        "https://docs.cloud.google.com/gemini/enterprise/docs/configure-identity-provider"
+      ],
+      "evidence_note": "식별자는 대소문자를 구분하며, google.subject에 매핑된 값이 바뀌면 새 사용자로 취급. 401 문제 해결에서 사용자 신원이 속성 매핑과 일치해야 한다고 설명.",
+      "fix_id": "align_user_identifier",
+      "fix_risk": "med"
+    },
+    {
+      "fault_id": "F5",
+      "name": "Entra 그룹 클레임 한도 초과(SAML 150개, OIDC 200개)",
+      "symptom": "그룹이 많은 사용자만 403 Permission Denied가 나고, 그룹으로 공유된 문서가 검색되지 않는다.",
+      "doc_urls": [
+        "https://docs.cloud.google.com/gemini/enterprise/docs/configure-identity-provider"
+      ],
+      "evidence_note": "사용자가 SAML 150개, OIDC 200개를 넘는 그룹에 속하면 토큰에서 그룹 ID가 빠짐. 403을 막으려면 그룹 클레임을 앱에 할당된 그룹으로 제한하거나 필터를 적용.",
+      "fix_id": "restrict_group_claims",
+      "fix_risk": "med"
+    },
+    {
+      "fault_id": "F6",
+      "name": "Sites.Selected 권한을 썼는데 대상 사이트에 fullcontrol 미부여",
+      "symptom": "특정 사이트의 문서만 검색되지 않는다.",
+      "doc_urls": [
+        "https://docs.cloud.google.com/gemini/enterprise/docs/connectors/ms-sharepoint/third-party-config"
+      ],
+      "evidence_note": "Sites.Selected를 쓰면 선택한 사이트마다 fullcontrol 권한을 부여해야 한다고 명시(PnP PowerShell 또는 Graph로 부여).",
+      "fix_id": "grant_site_fullcontrol",
+      "fix_risk": "med"
+    }
+  ],
+  "unverified": [
+    "SharePoint 커넥터가 google.subject=assertion.upn 또는 assertion.email일 때만 동작한다는 진술: 검색 요약에만 있고 문서에서 찾지 못함. 사용하지 않음.",
+    "클라이언트 시크릿 만료 시 동작: Entra ID 커넥터 문서에만 있음(SharePoint 문서에는 없음)."
+  ]
+}

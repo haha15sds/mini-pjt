@@ -1,0 +1,113 @@
+{
+  "version": "1.0",
+  "note": "tenant_baseline.json에 patch를 덮어써 장애를 주입한다(그래프 밖, D-2). 평가 케이스마다 새 thread에서 이 상태를 복사해 쓴다(D-1). recent_errors는 사용자·로그에 보이는 증상만 적고 fault_id는 넣지 않는다. expected_fault_id는 평가 실행기만 읽는다.",
+  "scenarios": [
+    {
+      "scenario_id": "S00",
+      "title": "정상 테넌트",
+      "inject": [],
+      "expected_fault_id": "none"
+    },
+    {
+      "scenario_id": "S01",
+      "title": "관리자 동의 없음",
+      "inject": [
+        {"fault_id": "F1", "patch": {
+          "entra_app.admin_consent": false,
+          "sync_status.state": "not_started",
+          "recent_errors": ["사용자 연결 시 'Need admin approval' 화면 표시", "데이터 스토어 생성 대기"]
+        }}
+      ],
+      "expected_fault_id": "F1"
+    },
+    {
+      "scenario_id": "S02",
+      "title": "쓰기 동작 켬 + 쓰기 scope 없음",
+      "inject": [
+        {"fault_id": "F2", "patch": {
+          "entra_app.write_actions_enabled": true,
+          "entra_app.write_scopes": [],
+          "sync_status.state": "failed",
+          "recent_errors": ["인증 오류: 요청한 범위(scope)에 대한 권한 없음", "동기화 실패"]
+        }}
+      ],
+      "expected_fault_id": "F2"
+    },
+    {
+      "scenario_id": "S03",
+      "title": "식별자 대소문자 차이",
+      "inject": [
+        {"fault_id": "F4", "patch": {
+          "users[user_id=u03].email": "Park.C@gasang.example",
+          "users[user_id=u03].subject_seen": "Park.C@gasang.example",
+          "recent_errors": ["u03: 401 invalid authentication credentials", "u03: 새 사용자로 라이선스 재할당 요청 발생"]
+        }}
+      ],
+      "expected_fault_id": "F4"
+    },
+    {
+      "scenario_id": "S04",
+      "title": "Sites.Selected 사이트 권한 누락",
+      "inject": [
+        {"fault_id": "F6", "patch": {
+          "sharepoint.sites[site_id=site-rnd].fullcontrol_granted": false,
+          "recent_errors": ["site-rnd: 크롤링 중 403 Forbidden"]
+        }}
+      ],
+      "expected_fault_id": "F6"
+    },
+    {
+      "scenario_id": "S05",
+      "title": "subject를 객체 ID로 매핑",
+      "inject": [
+        {"fault_id": "F3", "patch": {
+          "wif_mapping.google_subject": "assertion.oid",
+          "users[*].subject_seen": "=object_id",
+          "recent_errors": ["전체 사용자: 403 PERMISSION_DENIED", "라이선스 사용량이 사용자 수의 2배로 표시"]
+        }}
+      ],
+      "expected_fault_id": "F3"
+    },
+    {
+      "scenario_id": "S06",
+      "title": "그룹 클레임 한도 초과",
+      "inject": [
+        {"fault_id": "F5", "patch": {
+          "wif_mapping.group_claims_filter": "all_security_groups",
+          "users[user_id=u02].group_count": 230,
+          "recent_errors": ["u02: 403 Permission Denied", "u02: 토큰에 groups 클레임 없음"]
+        }}
+      ],
+      "expected_fault_id": "F5"
+    },
+    {
+      "scenario_id": "S07",
+      "title": "사용자 메일 주소 변경",
+      "inject": [
+        {"fault_id": "F4", "patch": {
+          "users[user_id=u03].email": "park.cy@gasang.example",
+          "users[user_id=u03].upn": "park.cy@gasang.example",
+          "users[user_id=u03].subject_seen": "park.cy@gasang.example",
+          "recent_errors": ["u03: 기존 사용자 기록과 일치하지 않는 신원으로 로그인"]
+        }}
+      ],
+      "expected_fault_id": "F4"
+    },
+    {
+      "scenario_id": "S08",
+      "title": "장애 2개 동시 (그룹 클레임 + 사이트 권한)",
+      "inject": [
+        {"fault_id": "F5", "patch": {
+          "wif_mapping.group_claims_filter": "all_security_groups",
+          "users[user_id=u02].group_count": 230
+        }},
+        {"fault_id": "F6", "patch": {
+          "sharepoint.sites[site_id=site-sales].fullcontrol_granted": false,
+          "recent_errors": ["site-sales: 크롤링 중 403 Forbidden", "u02: 403 Permission Denied"]
+        }}
+      ],
+      "expected_fault_id": "F6",
+      "note": "E1 메일은 특정 사이트 문서 누락을 주로 호소하므로 1순위 정답은 F6. F5는 2순위로 나오면 좋음(채점 안 함)."
+    }
+  ]
+}

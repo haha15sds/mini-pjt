@@ -1,0 +1,23 @@
+# 비밀값
+.env
+
+# 가상환경
+.venv/
+venv/
+
+# 실행 중 생기는 파일
+*.sqlite
+*.sqlite-*
+*.db
+chroma_db/
+__pycache__/
+*.pyc
+logs/
+*.log
+
+# archify 검증 부산물 (그림 HTML과 candidate.json은 커밋)
+.archify/**/review-*/
+.archify/**/visual-check*/
+.archify/**/*.finalize*.json
+.archify/**/*.browser-check.json
+.archify/**/*.delivery.json
