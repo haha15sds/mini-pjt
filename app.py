@@ -86,6 +86,16 @@ html,body{overflow-x:clip}
 ss = st.session_state
 for k, v in {"resp": None, "before": None, "after": None, "question": "", "scenario": "S01", "demo": False, "decided": None}.items():
     ss.setdefault(k, v)
+# [수정] 시나리오 선택·문의 입력칸은 key로 상태를 갖는 위젯이라, 코드에서 index·value를 바꿔도 화면이 따라오지 않았다
+# (예시 문의를 불러와도 시나리오가 그대로였음). 바꿀 값은 _pending에 두고, 위젯을 그리기 전에 위젯 상태에 직접 넣는다.
+ss.setdefault("scn_box", ss.scenario)
+ss.setdefault("q_box", ss.question)
+if "_pending" in ss:
+    _q, _s = ss.pop("_pending")
+    if _q is not None:
+        ss.q_box = ss.question = _q
+    if _s is not None:
+        ss.scn_box = ss.scenario = _s
 
 
 @st.cache_resource(show_spinner="검색 인덱스 준비 중... (처음 한 번)")
@@ -122,10 +132,9 @@ with st.sidebar:
     pick = st.selectbox("예시 문의 불러오기", ["(직접 입력)"] + [f"{r['id']}: {r['category']}" for r in rows])
     if st.button("불러오기", width="stretch") and pick != "(직접 입력)":
         r = rows[[f"{x['id']}: {x['category']}" for x in rows].index(pick)]
-        ss.question, ss.resp, ss.after, ss.decided = r["input"], None, None, None
+        ss.resp, ss.after, ss.decided = None, None, None
         m = re.search(r"scenario=(S\d\d)", r["note"])
-        if m:
-            ss.scenario = m.group(1)
+        ss["_pending"] = (r["input"], m.group(1) if m else None)
         st.rerun()
     if st.button("처음부터", width="stretch"):
         ss.resp, ss.after, ss.decided = None, None, None
@@ -140,8 +149,8 @@ with top_l:
                 unsafe_allow_html=True)
 with top_r:
     scen = {k: f"{k}: {v['title']}" for k, v in tenant.SCENARIOS.items()}
-    ss.scenario = st.selectbox("시나리오", list(scen), index=list(scen).index(ss.scenario), format_func=scen.get,
-                               help="장애는 그래프 밖에서 이 시나리오로 주입됩니다 (D-2)")
+    ss.scenario = st.selectbox("시나리오", list(scen), key="scn_box", format_func=scen.get,
+                               help="예시 문의를 불러오면 짝지어 둔 시나리오로 함께 바뀝니다. 장애는 그래프 밖에서 이 시나리오로 주입됩니다 (D-2)")
 
 tab_main, tab_eval = st.tabs(["진단", "평가 대시보드"])
 
@@ -164,7 +173,7 @@ with tab_main:
             st.markdown("<div class='sec'><span class='num'>1</span>문의 입력</div>", unsafe_allow_html=True)
             a, b = st.columns(2)
             with a:
-                ss.question = st.text_area("관리자 문의 (전달받은 메일이나 오류 메시지를 붙여넣기)", value=ss.question, height=230)
+                ss.question = st.text_area("관리자 문의 (전달받은 메일이나 오류 메시지를 붙여넣기)", key="q_box", height=230)
             with b:
                 h, kinds, inj = masked_html(ss.question)
                 st.markdown("<div class='muted' style='margin-bottom:6px'>에이전트에 전달되는 내용 (마스킹 미리보기)</div>"
@@ -177,8 +186,9 @@ with tab_main:
         if run:
             if ss.demo:
                 sample = json.loads((ROOT / "data" / "demo" / "sample_response.json").read_text(encoding="utf-8"))
-                ss.resp, ss.scenario, ss.question = sample["response"], sample["scenario_id"], sample["question"]
-                ss.before = tenant.initial_state(ss.scenario)
+                ss.resp = sample["response"]
+                ss["_pending"] = (sample["question"], sample["scenario_id"])
+                ss.before = tenant.initial_state(sample["scenario_id"])
             else:
                 with st.spinner("문서를 검색하고 테넌트를 조회해 런북을 만드는 중…"):
                     ss.resp = call_agent(question=ss.question, scenario_id=ss.scenario)
