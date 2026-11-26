@@ -602,3 +602,22 @@
 👤 18건 전체 다시 돌려줘.
 🔧 6차 평가(한도 오류 0건): **18/18**, AC-1 4/4, faithfulness 0.892(0.8 이상 9/11), AC-4 7/7, AC-3 0, AC-5·AC-7 18/18, 도구 일치 18/18. RAGAS answer_relevancy 0.311, context_precision 0.512, context_recall 0.939. LLM-as-Judge 5.0/5.0/5.0/5.0. 회귀 없음(G2 거절 유지).
 🔧 round6_report.md §5(5차 대비), README(RAGAS 6차 열·6차 줄·judge 점수), 대시보드 6차 추가.
+
+### 96. 화면의 예시 문의와 시나리오 관계
+👤 화면에서 예시 문의와 시나리오의 관계는?
+🤖 예시 문의 = 관리자가 붙여넣는 글(test_queries.csv의 input), 시나리오 = 에이전트가 조회하는 가상 테넌트 상태(scenarios.json, 그래프 밖에서 장애 주입). 예시를 불러오면 note의 scenario 값으로 시나리오도 자동으로 바뀜(app.py:122-128). 둘은 따로 바꿀 수 있어 일부러 어긋나게 하면 '증상과 테넌트 상태가 안 맞는' 경우를 시험 가능. 18건 대응표 제공.
+
+### 97. 구분자 대문자 의미
+👤 예시 문의와 시나리오 구분자의 대문자 의미는?
+🤖 P=positive, N=negative, E=edge, G=guardrail(과제 test_queries 범주), S=Scenario(가상 테넌트 상태), F=Fault(장애 F1~F6), H=Hint(강사 힌트 집중 점검 변형). G1~G5(가드레일 규칙)와 G1~G3(guardrail 케이스)가 글자가 겹치는 점 주의.
+
+### 98. 구분자 개선 제안
+👤 구분자를 좀 구분되게 쓸 수 없나?
+🔧 영향 범위 확인: 케이스 id(P/N/E/G+숫자)는 평가 결과 JSON·보고서·대시보드·준블라인드 원본 등 20개 넘는 파일에 쓰임. 가드레일 규칙 G1~G5는 SERVICE·README·seed·src·run_eval·test_queries note·설계 그림·프로토타입·보고서 등 약 18개 파일.
+🤖 추천: 케이스 id는 과제 범주 이름 그대로 두고, 가드레일 규칙만 R1~R5로 바꾸기(현재 문서·코드·그림 갱신, 지난 라운드 보고서는 기록이라 그대로 두고 README에 용어표). 결정은 사용자.
+
+### 99. 가드레일 규칙 이름 G1~G5 → R1~R5
+👤 규칙만 R1~R5로
+🔧 현재 문서·코드·그림만 변경(평가 케이스 id G1~G3는 그대로): SERVICE.md §4 표 첫 열과 성공 기준, README 회고 문구, seed v1.5.2 AC-1(규칙명·매핑), src/agent.py·guardrails.py 주석, run_eval.py 보고서 제목 줄, test_queries.csv note(`guardrail=G…` → `rule=R…`), 설계 그림 candidate.json 태그·카드 → archify finalize 4개 검사 통과, docs/images/architecture.svg 다시 내보내기.
+🔧 그대로 둔 것: 1~6차 보고서·history.md·planning.md·seed 개정 메모(당시 기록). README에 '구분자 읽는 법' 표 추가(예전 기록의 G1~G5 = 지금의 R1~R5).
+🔧 확인: CSV 18건 note 파싱 정상(R5, R1+R3, R2, R4), seed YAML 파싱 정상. 답변 내용에 영향 없어 18건 재실행은 안 함.

@@ -253,7 +253,7 @@ def plan_runbook(state: State) -> dict:
         "docs": "\n\n".join(f"[{c['doc_id']}] {c['section']}\n{c['text'][:4000 if c['doc_id'] == 'tenant-state' else 700]}" for c in ctx) or "(없음)",
         "notes": notes, "proposed": state.get("proposed") or "없음",
     })
-    # G5: 근거 doc_id 가 contexts 에 없는 원인은 버린다 (AC-5)
+    # R5: 근거 doc_id 가 contexts 에 없는 원인은 버린다 (AC-5)
     # [2차] 버리기 전에, 공식 문서 근거가 없는 원인은 그 장애의 이름·근거 요약으로 한 번 더 검색해 본다(원인별 근거 재검색).
     #       1차 E1(장애 2개)에서 두 원인이 모두 근거 부족으로 지워졌다.
     from retriever import get_retriever

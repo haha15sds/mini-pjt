@@ -11,14 +11,14 @@
     { "id": "eval", "type": "external", "label": "평가 실행기", "sublabel": "test_queries 18건", "tag": "RAGAS · 규칙 채점", "pos": [340, 40], "size": [170, 64] },
     { "id": "sa", "type": "external", "label": "관리자", "sublabel": "설정 문의 붙여넣기", "tag": "approve / reject", "pos": [40, 190], "size": [150, 64] },
     { "id": "hq", "type": "backend", "label": "handle_query", "sublabel": "FastAPI POST /query", "tag": "단일 진입점 D-7", "pos": [340, 190], "size": [170, 64] },
-    { "id": "mask", "type": "security", "label": "mask_pii", "sublabel": "이메일·전화·시크릿·이름", "tag": "fail-closed G1·G2", "pos": [340, 380], "size": [170, 64] },
-    { "id": "ig", "type": "security", "label": "input_guard", "sublabel": "잔여 재검사·인젝션", "tag": "G1·G3", "pos": [660, 190], "size": [170, 64] },
+    { "id": "mask", "type": "security", "label": "mask_pii", "sublabel": "이메일·전화·시크릿·이름", "tag": "fail-closed R1·R2", "pos": [340, 380], "size": [170, 64] },
+    { "id": "ig", "type": "security", "label": "input_guard", "sublabel": "잔여 재검사·인젝션", "tag": "R1·R3", "pos": [660, 190], "size": [170, 64] },
     { "id": "an", "type": "backend", "label": "analyze", "sublabel": "증상·ko/en 검색어", "tag": "LCEL 구조화 출력", "pos": [960, 190], "size": [170, 64] },
     { "id": "ag", "type": "backend", "label": "agent", "sublabel": "검색·조회·조치 제안", "tag": "ReAct · 쓰기 없음", "pos": [1260, 190], "size": [170, 64] },
     { "id": "docs", "type": "database", "label": "문서 인덱스", "sublabel": "Chroma + BM25 · 런북", "tag": "기준일·CC BY", "pos": [1260, 40], "size": [170, 64] },
     { "id": "pr", "type": "backend", "label": "plan_runbook", "sublabel": "causes · steps", "tag": "fault_id·위험도·출처", "pos": [1260, 380], "size": [170, 64] },
-    { "id": "gate", "type": "security", "label": "approval_gate", "sublabel": "유일한 interrupt 지점", "tag": "HITL G4", "pos": [960, 380], "size": [170, 64] },
-    { "id": "og", "type": "security", "label": "output_guard", "sublabel": "재마스킹·근거 확인", "tag": "G5", "pos": [660, 380], "size": [170, 64] },
+    { "id": "gate", "type": "security", "label": "approval_gate", "sublabel": "유일한 interrupt 지점", "tag": "HITL R4", "pos": [960, 380], "size": [170, 64] },
+    { "id": "og", "type": "security", "label": "output_guard", "sublabel": "재마스킹·근거 확인", "tag": "R5", "pos": [660, 380], "size": [170, 64] },
     { "id": "ckpt", "type": "database", "label": "checkpoint", "sublabel": "SqliteSaver · 마스킹본만", "tag": "thread_id", "pos": [960, 570], "size": [170, 64] },
     { "id": "tenant", "type": "database", "label": "가상 테넌트", "sublabel": "thread별 메모리 복사본", "tag": "초기값 = 시나리오 JSON", "pos": [1260, 570], "size": [170, 64] }
   ],
@@ -81,8 +81,8 @@
       "dot": "rose",
       "title": "가드레일과 수용 기준",
       "items": [
-        "G1 개인정보(이메일·전화 100%, 이름 best-effort) · G2 시크릿 · G3 붙여넣은 내용 속 인젝션 · G4 승인 없는 변경 금지 · G5 근거 없으면 확인 필요",
-        "필수: G1~G5 각각 통과 · faithfulness 0.8 이상 · reject 후 상태 불변 · 로그·DB·trace에 원문 0건 · 평가는 handle_query 경유",
+        "R1 개인정보(이메일·전화 100%, 이름 best-effort) · R2 시크릿 · R3 붙여넣은 내용 속 인젝션 · R4 승인 없는 변경 금지 · R5 근거 없으면 확인 필요",
+        "필수: 규칙 R1~R5 각각 통과 · faithfulness 0.8 이상 · reject 후 상태 불변 · 로그·DB·trace에 원문 0건 · 평가는 handle_query 경유",
         "목표: positive 진단 정확도 5/7 이상 (causes[0].fault_id vs 정답)"
       ]
     }
