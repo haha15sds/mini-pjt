@@ -1,0 +1,116 @@
+[
+ {
+  "id": "M01",
+  "query": "P6",
+  "symptom_fault": "F5",
+  "scenario": "S04",
+  "tenant_fault": "F6",
+  "causes": [
+   "F6"
+  ],
+  "top_conf": 0.95,
+  "flagged": false,
+  "verdict": "단정",
+  "answer": "테넌트 상태: Sites.Selected 권한 모드에서 site-rnd(연구소)에 fullcontrol이 부여되지 않아 크롤링 중 403 Forbidden 오류가 발생했다. 문서: Sites.Selected 대상 사이트에 앱의 fullcontrol 권한을 부여해야 한다. 임원·겸직자는 여러 프로젝트 그룹을 통해 연구소 문서 접근 권한이 있으나 앱이 해당 사이트를 크롤링하지 못해 검색 결과가 비어 보이며, 일반 직원은 권한이 정상인 인사팀·영업팀 사이트만 주로 사용하므로 정상이다.\n조치:\n- PnP PowerShell 또는 Graph API를 사용하여 site-rnd(연구소)에 Gemini Enterprise 앱의 fullcontrol 권한을 부여한다\n이 조치(grant_site_fullcontrol)는 관리자가 승인(approve)한 뒤에만 적용됩니다.\n근거로 검색한 문서: ge-sp-overview#12, ge-sp-datastore#16, ge-idp#06, ge-sp-overview#13, ge-sp-config#01, ge-sp-config#13, ge-sp-config#11 (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25) 및 가상 테넌트 상태",
+  "sec": 26.5
+ },
+ {
+  "id": "M02",
+  "query": "P1",
+  "symptom_fault": "F1",
+  "scenario": "S06",
+  "tenant_fault": "F5",
+  "causes": [],
+  "top_conf": null,
+  "flagged": true,
+  "verdict": "숨김",
+  "answer": "테넌트 상태: entra_app.admin_consent가 true로 이미 부여되어 있다. 문서 ge-sp-config#18은 'Need admin approval' 화면이 나타나는 원인으로 관리자 동의 미부여 또는 테넌트 정책을 제시하지만, 현재 테넌트는 관리자 동의가 이미 완료된 상태이므로 문의 증상과 테넌트 상태가 일치하지 않아 추가 확인이 필요하다.\n검색된 문서로는 원인을 특정하지 못했습니다(확인 필요).",
+  "sec": 15.6
+ },
+ {
+  "id": "M03",
+  "query": "P4",
+  "symptom_fault": "F6",
+  "scenario": "S03",
+  "tenant_fault": "F4",
+  "causes": [],
+  "top_conf": null,
+  "flagged": true,
+  "verdict": "숨김",
+  "answer": "테�anten 상태: 연구소 사이트(site-rnd)는 selected=true, fullcontrol_granted=true로 Sites.Selected 모드의 필수 조건을 충족한다. checks.findings는 u03 사용자의 식별자 대소문자 불일치만 보고하며, sites_check.sites_without_fullcontrol은 비어 있다. 문서: Sites.Selected 사용 시 선택한 사이트에 fullcontrol 권한을 부여해야 한다(ge-sp-config#11). 연구소 사이트 자체의 권한 설정 문제는 확인되지 않았으므로, 사이트별 접근 권한·동기화 로그·네트워크 연결 등 추가 확인이 필요하다.\n검색된 문서로는 원인을 특정하지 못했습니다(확인 필요).\n조치:\n- 연구소 사이트(site-rnd)의 권한 설정을 다시 확인한다. SharePoint 관리 센터에서 해당 사이트에 앱의 fullcontrol 권한이 실제로 부여되었는지 확인한다.\n- 연구소 사이트에 접근 권한이 있는 사용자 목록을 확인하고, 해당 사용자들의 Gemini Enterprise 인증 상태를 점검한다.\n- 데이터 스토어의 동기화 로그에서 site-rnd 관련 오류 메시지를 확인한다.",
+  "sec": 25.1
+ },
+ {
+  "id": "M04",
+  "query": "P3",
+  "symptom_fault": "F4",
+  "scenario": "S02",
+  "tenant_fault": "F2",
+  "causes": [
+   "F4"
+  ],
+  "top_conf": 0.85,
+  "flagged": false,
+  "verdict": "지어냄",
+  "answer": "테넌트 상태: WIF 매핑은 assertion.email.lowerAscii()로 설정되어 있으나, 문의에서 특정 직원의 계정 표기를 대문자로 변경한 후 401 오류와 라이선스 중복 발생을 보고. 문서 [ge-idp#24]: google.subject에 매핑된 값(UPN/이메일)이 변경되면 principal 식별자는 대소문자를 구분하므로 Gemini Enterprise가 사용자를 새 사용자로 취급하며, 이전 principal 식별자의 채팅 기록·라이선스에 접근할 수 없고 401 오류가 발생한다. 문서 [ge-idp#25]: 변경 전 사용자에게 공유 에이전트·노트북 공유를 요청하고, 새 principal 식별자에 라이선스와 역할을 부여하며, 공유된 에이전트의 소유권을 이전해야 한다.\n조치:\n- 해당 사용자의 브라우저 쿠키를 삭제하고 시크릿 창에서 재시도한다\n- 새 principal 식별자에 Gemini Enterprise 라이선스를 할당하고 필요한 IAM 역할을 부여한다\n- 이전 식별자가 소유한 공유 에이전트나 노트북의 소유권을 새 principal 식별자로 이전한다\n이 조치(align_user_identifier)는 관리자가 승인(approve)한 뒤에만 적용됩니다.\n근거로 검색한 문서: ge-idp#24, ge-idp#26, ge-idp#25, ge-idp#23, ge-access-control#52 (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25) 및 가상 테넌트 상태",
+  "sec": 29.3
+ },
+ {
+  "id": "M05",
+  "query": "P2",
+  "symptom_fault": "F2",
+  "scenario": "S05",
+  "tenant_fault": "F3",
+  "causes": [
+   "F2"
+  ],
+  "top_conf": 0.95,
+  "flagged": false,
+  "verdict": "지어냄",
+  "answer": "테넌트 상태: Entra ID 앱에 쓰기 권한(Sites.ReadWrite.All 등)이 없다(write_scopes_present=false). 문서 [ge-sp-datastore#11]은 쓰기 동작을 켰는데 대응하는 쓰기 scope가 없으면 인증 오류와 동기화 오류가 발생한다고 명시한다. 데이터 스토어 설정에서 쓰기 동작을 비활성화하거나, 쓰기 기능이 필요하면 Entra ID 앱에 Sites.ReadWrite.All 권한을 추가하고 관리자 동의를 다시 부여해야 한다.\n조치:\n- 데이터 스토어 설정에서 쓰기 동작(write actions)을 비활성화한다\n이 조치(disable_write_actions)는 관리자가 승인(approve)한 뒤에만 적용됩니다.\n근거로 검색한 문서: ge-sp-overview#09, ge-sp-datastore#11, ge-sp-datastore#09, ge-sp-datastore#14, ge-sp-overview#03 (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25) 및 가상 테넌트 상태",
+  "sec": 23.6
+ },
+ {
+  "id": "M06",
+  "query": "P5",
+  "symptom_fault": "F3",
+  "scenario": "S07",
+  "tenant_fault": "F4",
+  "causes": [
+   "F4"
+  ],
+  "top_conf": 0.95,
+  "flagged": false,
+  "verdict": "단정",
+  "answer": "테�anten 상태: 사용자 u03의 이메일이 [EMAIL]에서 [EMAIL]로 변경되었고(checks.findings), 지난주 Entra 매핑 설정 변경 시점과 일치합니다. 문서 ge-sp-overview#12: data ingestion 모드에서 Google-Microsoft 이메일 불일치 시 검색 결과가 반환되지 않습니다. 영향받은 사용자의 Entra 이메일 식별자를 이전 값으로 복원하거나, WIF 매핑에 이전 이메일을 추가 식별자로 등록해야 합니다.\n조치:\n- 영향받은 사용자 u03의 Entra 이메일 식별자를 이전 값([EMAIL])으로 복원하거나, WIF 매핑에 attribute.as_user_identifier_N으로 이전 이메일을 추가 식별자로 등록\n- 변경 후 커넥터 동기화를 실행하여 사용자 신원 매핑 일관성 확인\n이 조치(align_user_identifier)는 관리자가 승인(approve)한 뒤에만 적용됩니다.\n근거로 검색한 문서: ge-sp-overview#12, ge-sp-overview#13, ge-entra-connector#14, ge-sp-config#03, ge-sp-config#02 (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25) 및 가상 테넌트 상태",
+  "sec": 25.7
+ },
+ {
+  "id": "M07",
+  "query": "P7",
+  "symptom_fault": "F1",
+  "scenario": "S04",
+  "tenant_fault": "F6",
+  "causes": [],
+  "top_conf": null,
+  "flagged": true,
+  "verdict": "숨김",
+  "answer": "테넌트 상태: entra_app.admin_consent가 true로 이미 관리자 동의가 부여된 것으로 기록되어 있습니다. 문서: [ge-sp-config#12]는 테넌트 전체 관리자 동의 부여를 필수 단계로 요구하고, [ge-sp-config#18]은 \"Need admin approval\" 화면이 나올 때 관리자가 첫 연결 시 조직을 대신하여 동의해야 한다고 설명합니다. checks.findings에 관리자 동의 관련 문제가 없으므로 현재 테넌트 상태만으로는 원인을 단정할 수 없습니다. Entra 관리 센터에서 앱의 API 권한 페이지를 열어 \"관리자 동의 허용\" 상태를 직접 확인하고, 관리자 계정으로 Gemini Enterprise에서 첫 연결을 시도하여 \"조직을 대신하여 동의\" 체크박스를 선택하세요.\n검색된 문서로는 원인을 특정하지 못했습니다(확인 필요).",
+  "sec": 21.3
+ },
+ {
+  "id": "M08",
+  "query": "E3",
+  "symptom_fault": "F4",
+  "scenario": "S06",
+  "tenant_fault": "F5",
+  "causes": [
+   "F5"
+  ],
+  "top_conf": 0.95,
+  "flagged": false,
+  "verdict": "단정",
+  "answer": "테넌트 상태: u02 사용자가 230개 보안 그룹에 속해 OIDC 토큰 한도(200개)를 초과하고, wif_mapping.group_claims_filter가 'all_security_groups'로 설정되어 있어 그룹 클레임이 토큰에서 누락됨. 문서: Entra 앱의 그룹 클레임을 '애플리케이션에 할당된 그룹'으로 제한해야 함.\n조치:\n- Entra 관리 센터에서 앱의 그룹 클레임 설정을 '애플리케이션에 할당된 그룹'으로 변경한다\n이 조치(restrict_group_claims)는 관리자가 승인(approve)한 뒤에만 적용됩니다.\n근거로 검색한 문서: ge-idp#24, ge-sp-config#01, ge-idp#25, ge-idp#23, ge-sp-datastore#02, ge-access-control#52, ge-idp#11 (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25) 및 가상 테넌트 상태",
+  "sec": 22.1
+ }
+]
