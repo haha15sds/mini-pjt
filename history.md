@@ -573,3 +573,13 @@
 🔧 에이전트 동작이 바뀌어 정식 18건 5차 평가로 회귀 확인 중.
 🔧 5차 평가(정식 18건, 회귀 확인): 18/18, faithfulness 0.886(0.8 이상 8/11), AC-4 7/7, judge 5.0/5.0/4.64/4.64(E2 안전 1점 — 4차엔 같은 조건 5점, judge도 흔들림). 회귀 없음.
 🔧 반영: round5_report §5, README(RAGAS 5차 열, 5차·힌트 점검 줄), SERVICE.md §3(findings·not_a_problem), seed v1.5.1(D-15 보강), 대시보드 5차, stress_hint_report.md(①②③ 비교).
+
+### 90. Hallmark 감사 — 프로토타입 화면
+👤 /hallmark audit docs/prototype/index.html
+🔧 Hallmark audit 절차(redesign.md '감사는 여기서 멈춤': 파일 수정 없음)대로 sloplint 정적 검사(장르 modern-minimal, 범위 app) + 1280×800 화면 확인 + 판단 게이트(gates.md §5). 화면 렌더 검사는 puppeteer 미설치로 생략.
+🔧 결과: FAIL 23 · REFLEX 29 · WARN 10. 주요: transition all·width 애니메이션, :focus-visible 없음, reduced-motion 없음, emoji 아이콘 4, overflow-x clip 없음, 색 리터럴 11, 장식용 점, 보라-파랑 그라데이션 로고, 카드 안 카드, 가운뎃점 메타 문자열, 다크 모드 흰 글자 대비 부족(1.85~2.62:1). 프로젝트 파일은 고치지 않음.
+
+### 91. Hallmark polish — 프로토타입 화면
+👤 polish 수준으로
+🔧 레이아웃·내용·동작은 그대로 두고 게이트가 짚은 것만 수정(docs/prototype/index.html): Hallmark 도장·자기 평가 주석, 색 전부 토큰화(채움용 --*-solid 토큰 추가로 다크 모드 흰 글자 대비 확보), transition은 속성 지정·확신도 막대는 transform scaleX, :focus-visible·:active·비활성 3채널(채움·글자·커서), prefers-reduced-motion, html·body overflow-x clip, 이모지 4개와 ◐를 SVG 아이콘으로, 로고·막대 그라데이션 제거, 원인 카드(카드 안 카드)를 구분선 목록으로, 진행 단계 장식 점을 번호로, 가운뎃점 문구를 콜론·쉼표 문장으로, 답변 왼쪽 강조선을 테두리로, 4px 간격 정리, text-wrap balance, meta description, ::selection·caret 색. 화면에 결과가 보이는 승인 후 토스트는 제거(gate 16).
+🔧 sloplint: FAIL 23·REFLEX 29·WARN 10 → **0·0·0**. 브라우저에서 G1 흐름(마스킹→진단→승인→전후 비교) 확인. 다크 모드 화면 캡처는 미리보기 패널이 밝은 화면만 찍어 확인 못 함(대비는 검사기로 통과). Streamlit app.py에는 아직 같은 기준 미적용.
