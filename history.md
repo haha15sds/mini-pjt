@@ -597,3 +597,8 @@
 👤 1·2번 고치기
 🔧 1번(agent.py): `with ThreadPoolExecutor` 대신 직접 만들고 `finally: ex.shutdown(wait=False)` → 상한을 넘으면 기다리지 않고 반환. 확인: 상한 1초·작업 3초 → 1.0초 만에 timed_out=True.
 🔧 2번(guardrails.py): SECRET_REQUEST에서 '확인하고' 제거. 확인: "시크릿이 만료됐는지 확인하고 싶어요"·"비밀번호 정책…확인하고 싶은" → 진단으로, "시크릿 값을 다시 알려 줄 수 있나요"·G2 → 거절 유지. handle_query로 G2·P2 재실행 2/2 통과.
+
+### 95. 6차 평가 — 리뷰 반영 후 18건 전체
+👤 18건 전체 다시 돌려줘.
+🔧 6차 평가(한도 오류 0건): **18/18**, AC-1 4/4, faithfulness 0.892(0.8 이상 9/11), AC-4 7/7, AC-3 0, AC-5·AC-7 18/18, 도구 일치 18/18. RAGAS answer_relevancy 0.311, context_precision 0.512, context_recall 0.939. LLM-as-Judge 5.0/5.0/5.0/5.0. 회귀 없음(G2 거절 유지).
+🔧 round6_report.md §5(5차 대비), README(RAGAS 6차 열·6차 줄·judge 점수), 대시보드 6차 추가.
