@@ -1,0 +1,6 @@
+# Streamlit 기본 강조색(빨강)을 화면 토큰의 브랜드 색과 맞춘다 (Hallmark polish).
+[theme]
+primaryColor = "#2f5bea"
+
+[browser]
+gatherUsageStats = false

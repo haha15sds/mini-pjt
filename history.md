@@ -583,3 +583,8 @@
 👤 polish 수준으로
 🔧 레이아웃·내용·동작은 그대로 두고 게이트가 짚은 것만 수정(docs/prototype/index.html): Hallmark 도장·자기 평가 주석, 색 전부 토큰화(채움용 --*-solid 토큰 추가로 다크 모드 흰 글자 대비 확보), transition은 속성 지정·확신도 막대는 transform scaleX, :focus-visible·:active·비활성 3채널(채움·글자·커서), prefers-reduced-motion, html·body overflow-x clip, 이모지 4개와 ◐를 SVG 아이콘으로, 로고·막대 그라데이션 제거, 원인 카드(카드 안 카드)를 구분선 목록으로, 진행 단계 장식 점을 번호로, 가운뎃점 문구를 콜론·쉼표 문장으로, 답변 왼쪽 강조선을 테두리로, 4px 간격 정리, text-wrap balance, meta description, ::selection·caret 색. 화면에 결과가 보이는 승인 후 토스트는 제거(gate 16).
 🔧 sloplint: FAIL 23·REFLEX 29·WARN 10 → **0·0·0**. 브라우저에서 G1 흐름(마스킹→진단→승인→전후 비교) 확인. 다크 모드 화면 캡처는 미리보기 패널이 밝은 화면만 찍어 확인 못 함(대비는 검사기로 통과). Streamlit app.py에는 아직 같은 기준 미적용.
+
+### 92. Hallmark polish 기준을 Streamlit 화면에 적용
+👤 Streamlit에 적용
+🔧 app.py(레이아웃·동작 유지): CSS를 프로토타입과 같은 토큰으로 교체(채움용 --*-solid로 다크 모드 흰 글자 대비, 그라데이션 제거, 4px 간격, overflow-x clip, 모션 축소), 상단 바 제목을 워드마크·태그라인 문단으로, 칩·시나리오·예시 목록·안내 문구·바닥글의 가운뎃점 제거, 탭·버튼·대시보드 표의 이모지를 글자로(승인/거절, 통과/실패, 일치/불일치), 가드레일 이모지를 SVG 아이콘으로, 진행 단계 점을 번호로, 원인 카드(카드 안 카드)를 구분선 목록으로, 답변 왼쪽 강조선을 테두리로, 승인 후 토스트 제거, 위험도 배지를 채움 토큰으로. `.streamlit/config.toml`로 Streamlit 기본 강조색(빨강)을 브랜드 파랑으로.
+🔧 확인(샘플 모드): 진단→승인→전후 비교, 단계 번호 1~4, SVG 아이콘 4개, 화면 오류 0, 주 버튼 rgb(47,91,234). sloplint는 Python 파일을 읽지 못해 Streamlit 화면은 검사기 대신 같은 규칙을 눈으로 대조.

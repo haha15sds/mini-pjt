@@ -24,9 +24,9 @@ sys.path.insert(0, str(ROOT / "src"))
 import tenant  # noqa: E402
 from guardrails import detect_injection, mask_pii  # noqa: E402
 
-st.set_page_config(page_title="GE 설정 지원 에이전트", page_icon="🛠️", layout="wide")
+st.set_page_config(page_title="GE 설정 지원 에이전트", page_icon=":material/build:", layout="wide")
 
-RISK = {"low": ("낮음", "var(--ok)"), "med": ("중간", "var(--warn)"), "high": ("높음", "var(--bad)")}
+RISK = {"low": ("낮음", "var(--ok-solid)"), "med": ("중간", "var(--warn-solid)"), "high": ("높음", "var(--bad-solid)")}
 NODES = ["mask_pii", "input_guard", "analyze", "agent", "plan_runbook", "approval_gate", "output_guard"]
 NODE_KO = {"mask_pii": "마스킹", "input_guard": "입력 검사", "analyze": "분석", "agent": "에이전트",
            "plan_runbook": "런북 계획", "approval_gate": "승인 게이트", "output_guard": "출력 검사"}
@@ -34,45 +34,52 @@ NODE_KO = {"mask_pii": "마스킹", "input_guard": "입력 검사", "analyze": "
 # ---------------- 디자인 (프로토타입과 같은 토큰) ----------------
 st.markdown("""
 <style>
-:root{--brand:#2f5bea;--brand-soft:#e8eefe;--ok:#1a7f4b;--ok-soft:#e3f5ea;--warn:#b26a00;--warn-soft:#fff1d6;
---bad:#c62f3c;--bad-soft:#fde7e9;--tok:#fff1a8;--tok-ink:#5c4400;--line:#e3e8f0;--muted:#5d6779;--soft:#f5f7fb}
-@media (prefers-color-scheme: dark){:root{--brand:#7d9bff;--brand-soft:#1f2b4a;--ok:#4cc38a;--ok-soft:#173326;--warn:#f0b450;
---warn-soft:#3a2d12;--bad:#ff7a85;--bad-soft:#3b1c22;--tok:#5a4a12;--tok-ink:#ffe9a3;--line:#283246;--muted:#9aa5b8;--soft:#121826}}
+/* Hallmark · redesign: polish · shape: app screen · genre: modern-minimal · posture: restrained · 프로토타입(docs/prototype/index.html)과 같은 기준 */
+:root{--brand:#2f5bea;--brand-soft:#e8eefe;--ok:#1a7f4b;--ok-soft:#e3f5ea;--warn:#9a5a00;--warn-soft:#fff1d6;
+--bad:#c62f3c;--bad-soft:#fde7e9;--tok:#fff1a8;--tok-ink:#5c4400;--line:#dfe5ee;--muted:#5a6476;--soft:#f5f7fb;
+--on-solid:#ffffff;--brand-solid:#2f5bea;--ok-solid:#1a7f4b;--warn-solid:#9a5a00;--bad-solid:#b42834;--mono:ui-monospace,Consolas,monospace}
+@media (prefers-color-scheme: dark){:root{--brand:#8aa6ff;--brand-soft:#1f2b4a;--ok:#5fd09a;--ok-soft:#173326;--warn:#f0b450;
+--warn-soft:#3a2d12;--bad:#ff8a94;--bad-soft:#3b1c22;--tok:#5a4a12;--tok-ink:#ffe9a3;--line:#2b3549;--muted:#a3adbf;--soft:#121826;
+--brand-solid:#3355d6;--ok-solid:#18704a;--warn-solid:#8a5200;--bad-solid:#b02a36}}
+html,body{overflow-x:clip}
 .block-container{padding-top:3rem;max-width:1500px}
-.topbar{display:flex;align-items:center;gap:14px;padding:10px 4px 14px;border-bottom:1px solid var(--line);margin-bottom:14px}
-.logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#2f5bea,#7a5cff);display:grid;place-items:center;color:#fff;font-weight:800}
-.ttl b{display:block;font-size:1.15rem}.ttl span{color:var(--muted);font-size:.85rem}
-.chip{display:inline-block;padding:3px 10px;border-radius:999px;background:var(--brand-soft);color:var(--brand);font-size:.8rem;font-weight:700}
-.num{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--brand);color:#fff;font-size:.8rem;font-weight:700;margin-right:6px}
-.sec{font-size:1.02rem;font-weight:700;margin:2px 0 10px}
-.stp{display:flex;gap:10px;align-items:flex-start;padding:9px 2px;color:var(--muted)}
-.stp i{width:20px;height:20px;border-radius:50%;border:2px solid var(--line);flex:none;margin-top:3px}
-.stp.on{color:inherit;font-weight:700}.stp.on i{border-color:var(--brand);background:var(--brand-soft)}
-.stp.done i{background:var(--ok);border-color:var(--ok)}
+.topbar{display:flex;align-items:center;gap:16px;padding:8px 4px 16px;border-bottom:1px solid var(--line);margin-bottom:16px}
+.logo{width:40px;height:40px;border-radius:8px;background:var(--brand-solid);display:grid;place-items:center;color:var(--on-solid);font-weight:800}
+.wordmark{margin:0;font-size:1.15rem;font-weight:700;line-height:1.3}.tagline{margin:0;font-size:.85rem}
+.chip{display:inline-block;padding:4px 12px;border-radius:999px;background:var(--brand-soft);font-size:.8rem;font-weight:700}
+.num{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--brand-solid);color:var(--on-solid);font-size:.8rem;font-weight:700;margin-right:8px}
+.sec{font-size:1.02rem;font-weight:700;margin:0 0 12px;text-wrap:balance}
+.stp{display:flex;gap:12px;align-items:flex-start;padding:8px 0;color:var(--muted)}
+.stp .no{width:24px;height:24px;border-radius:50%;border:2px solid var(--line);flex:none;display:grid;place-items:center;font-size:.75rem;font-weight:700}
+.stp.on{color:inherit;font-weight:700}.stp.on .no{border-color:var(--brand);color:var(--brand)}
+.stp.done .no{background:var(--ok-solid);border-color:var(--ok-solid);color:var(--on-solid)}
 .stp small{display:block;font-weight:400;font-size:.75rem;color:var(--muted)}
-.prev{border:1px dashed var(--line);border-radius:10px;padding:12px;background:var(--soft);white-space:pre-wrap;min-height:205px;font-size:.92rem}
+.prev{border:1px dashed var(--line);border-radius:8px;padding:12px;background:var(--soft);white-space:pre-wrap;min-height:204px;font-size:.92rem}
 .tok{background:var(--tok);color:var(--tok-ink);border-radius:4px;padding:0 4px;font-weight:700}
-.inj{background:var(--bad-soft);color:var(--bad);border-radius:4px;padding:0 3px;text-decoration:line-through}
-.node{display:inline-block;padding:5px 11px;margin:2px 0;border-radius:8px;border:1px solid var(--line);font-size:.82rem;color:var(--muted)}
-.node.on{background:var(--brand);border-color:var(--brand);color:#fff}.node.wait{background:var(--warn);border-color:var(--warn);color:#fff}
-.arr{color:var(--muted);margin:0 3px}
-.toolc{background:var(--brand-soft);color:var(--brand);padding:1px 7px;border-radius:5px;font-family:ui-monospace,Consolas,monospace;font-size:.8rem}
-.ans{background:var(--soft);border-left:4px solid var(--brand);border-radius:8px;padding:12px 14px;white-space:pre-wrap;font-size:.95rem}
-.cause{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
-.badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:.75rem;font-weight:800;color:#fff;background:var(--brand)}
-.bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin:8px 0 3px}.bar b{display:block;height:100%;background:linear-gradient(90deg,#2f5bea,#7a5cff)}
-.evi span{display:inline-block;font-size:.75rem;padding:1px 7px;margin:4px 4px 0 0;border-radius:6px;border:1px solid var(--line);font-family:ui-monospace,Consolas,monospace}
-.tl{position:relative;padding-left:22px}.tl:before{content:"";position:absolute;left:8px;top:6px;bottom:6px;width:2px;background:var(--line)}
-.ts{position:relative;margin:0 0 12px;font-size:.93rem}.ts:before{content:"";position:absolute;left:-19px;top:6px;width:12px;height:12px;border-radius:50%;background:inherit;border:3px solid var(--c)}
-.risk{font-size:.7rem;font-weight:800;padding:1px 7px;border-radius:999px;color:#fff;background:var(--c)}
+.inj{background:var(--bad-soft);color:var(--bad);border-radius:4px;padding:0 4px;text-decoration:line-through}
+.node{display:inline-block;padding:4px 12px;margin:4px 0;border-radius:8px;border:1px solid var(--line);font-size:.82rem;color:var(--muted)}
+.node.on{background:var(--brand-solid);border-color:var(--brand-solid);color:var(--on-solid)}.node.wait{background:var(--warn-solid);border-color:var(--warn-solid);color:var(--on-solid)}
+.arr{color:var(--muted);margin:0 4px}
+.toolc{background:var(--brand-soft);padding:2px 8px;border-radius:4px;font-family:var(--mono);font-size:.8rem}
+.ans{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:12px 16px;white-space:pre-wrap;font-size:.95rem}
+.cause{padding:12px 0;border-top:1px solid var(--line)}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.75rem;font-weight:800;color:var(--on-solid);background:var(--brand-solid)}
+.bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin:8px 0 4px}.bar b{display:block;height:100%;background:var(--brand-solid)}
+.evi span{display:inline-block;font-size:.75rem;padding:2px 8px;margin:4px 4px 0 0;border-radius:4px;border:1px solid var(--line);font-family:var(--mono)}
+.tl{position:relative;padding-left:24px}.tl:before{content:"";position:absolute;left:8px;top:8px;bottom:8px;width:2px;background:var(--line)}
+.ts{position:relative;margin:0 0 12px;font-size:.93rem}.ts:before{content:"";position:absolute;left:-20px;top:8px;width:12px;height:12px;border-radius:50%;background:inherit;border:3px solid var(--c)}
+.risk{font-size:.75rem;font-weight:800;padding:2px 8px;border-radius:999px;color:var(--on-solid);background:var(--c)}
 .muted{color:var(--muted);font-size:.82rem}
-.apv{border:2px solid var(--warn);background:var(--warn-soft);border-radius:12px;padding:14px 16px}
-.diff{width:100%;border-collapse:collapse;font-size:.9rem}.diff td,.diff th{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-.diff th{color:var(--muted);font-size:.75rem}.old{color:var(--bad);text-decoration:line-through}.new{color:var(--ok);font-weight:700}
-.doc{border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin-bottom:8px;font-size:.82rem}
-.doc b{font-family:ui-monospace,Consolas,monospace;color:var(--brand)}
-.tr{font-size:.8rem;margin:0 0 5px;color:var(--muted)}.tr b{color:inherit}
+.apv{border:2px solid var(--warn);background:var(--warn-soft);border-radius:12px;padding:16px}
+.diff{width:100%;border-collapse:collapse;font-size:.9rem}.diff td,.diff th{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.diff th{color:var(--muted);font-size:.8rem}.old{color:var(--bad);text-decoration:line-through}.new{color:var(--ok);font-weight:700}
+.doc{border-bottom:1px solid var(--line);padding:8px 0;font-size:.82rem}
+.doc b{font-family:var(--mono);color:var(--brand)}
+.tr{font-size:.8rem;margin:0 0 4px;color:var(--muted)}.tr b{color:inherit}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:8px 12px;align-items:center;font-size:.82rem;color:var(--muted)}
+.ico{width:16px;height:16px;color:var(--brand);display:block}
 .foot{color:var(--muted);font-size:.75rem;text-align:center;padding:16px 0}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>""", unsafe_allow_html=True)
 
 # ---------------- 상태 ----------------
@@ -112,9 +119,9 @@ rows = list(csv.DictReader(open(ROOT / "evaluation" / "test_queries.csv", encodi
 with st.sidebar:
     st.markdown("### 시연 도구")
     ss.demo = st.toggle("샘플 응답으로 보기 (Bedrock 호출 없음)", value=ss.demo)
-    pick = st.selectbox("예시 문의 불러오기", ["(직접 입력)"] + [f"{r['id']} · {r['category']}" for r in rows])
+    pick = st.selectbox("예시 문의 불러오기", ["(직접 입력)"] + [f"{r['id']}: {r['category']}" for r in rows])
     if st.button("불러오기", width="stretch") and pick != "(직접 입력)":
-        r = rows[[f"{x['id']} · {x['category']}" for x in rows].index(pick)]
+        r = rows[[f"{x['id']}: {x['category']}" for x in rows].index(pick)]
         ss.question, ss.resp, ss.after, ss.decided = r["input"], None, None, None
         m = re.search(r"scenario=(S\d\d)", r["note"])
         if m:
@@ -123,20 +130,20 @@ with st.sidebar:
     if st.button("처음부터", width="stretch"):
         ss.resp, ss.after, ss.decided = None, None, None
         st.rerun()
-    st.caption("모든 테넌트·메일 데이터는 가상입니다.")
+    st.caption("모든 테넌트와 메일 데이터는 가상입니다.")
 
 # ---------------- 상단 바 ----------------
 top_l, top_r = st.columns([5, 2])
 with top_l:
-    st.markdown("<div class='topbar'><div class='logo'>GE</div><div class='ttl'><b>Gemini Enterprise 설정 지원 에이전트</b>"
-                "<span>근거 있는 진단, 승인 후 조치</span></div><span class='chip'>가상 테넌트 · 가상상사</span></div>",
+    st.markdown("<div class='topbar'><div class='logo' aria-hidden='true'>GE</div><div><p class='wordmark'>Gemini Enterprise 설정 지원 에이전트</p>"
+                "<p class='tagline'>근거 있는 진단, 승인 후 조치</p></div><span class='chip'>가상 테넌트: 가상상사</span></div>",
                 unsafe_allow_html=True)
 with top_r:
-    scen = {k: f"{k} · {v['title']}" for k, v in tenant.SCENARIOS.items()}
+    scen = {k: f"{k}: {v['title']}" for k, v in tenant.SCENARIOS.items()}
     ss.scenario = st.selectbox("시나리오", list(scen), index=list(scen).index(ss.scenario), format_func=scen.get,
                                help="장애는 그래프 밖에서 이 시나리오로 주입됩니다 (D-2)")
 
-tab_main, tab_eval = st.tabs(["🔎 진단", "📊 평가 대시보드"])
+tab_main, tab_eval = st.tabs(["진단", "평가 대시보드"])
 
 with tab_main:
     resp = ss.resp
@@ -146,10 +153,10 @@ with tab_main:
     # ---- 좌측: 진행 단계 ----
     with c_left:
         with st.container(border=True):
-            for n, (t, s) in enumerate([("문의 입력", "개인정보 자동 가림"), ("진단", "문서 검색 · 테넌트 조회"),
+            for n, (t, s) in enumerate([("문의 입력", "개인정보 자동 가림"), ("진단", "문서 검색과 테넌트 조회"),
                                         ("승인", "관리자가 결정"), ("결과", "바뀐 설정 확인")], 1):
                 cls = "done" if n < stage else ("on" if n == stage else "")
-                st.markdown(f"<div class='stp {cls}'><i></i><div>{t}<small>{s}</small></div></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='stp {cls}'><span class='no'>{n}</span><div>{t}<small>{s}</small></div></div>", unsafe_allow_html=True)
 
     # ---- 가운데 ----
     with c_mid:
@@ -157,13 +164,13 @@ with tab_main:
             st.markdown("<div class='sec'><span class='num'>1</span>문의 입력</div>", unsafe_allow_html=True)
             a, b = st.columns(2)
             with a:
-                ss.question = st.text_area("관리자 문의 (전달받은 메일·오류 메시지 붙여넣기)", value=ss.question, height=230)
+                ss.question = st.text_area("관리자 문의 (전달받은 메일이나 오류 메시지를 붙여넣기)", value=ss.question, height=230)
             with b:
                 h, kinds, inj = masked_html(ss.question)
                 st.markdown("<div class='muted' style='margin-bottom:6px'>에이전트에 전달되는 내용 (마스킹 미리보기)</div>"
                             f"<div class='prev'>{h or '<span class=muted>입력을 기다리는 중</span>'}</div>", unsafe_allow_html=True)
                 st.markdown(f"<div class='muted'>가린 종류: {', '.join(kinds) or '없음'}"
-                            + (" · <b style='color:var(--bad)'>붙여넣은 내용 속 지시 탐지 → 따르지 않음</b>" if inj else "") + "</div>",
+                            + (". <b style='color:var(--bad)'>붙여넣은 내용 속 지시를 탐지했고 따르지 않습니다.</b>" if inj else "") + "</div>",
                             unsafe_allow_html=True)
             run = st.button("진단 요청", type="primary")
 
@@ -173,7 +180,7 @@ with tab_main:
                 ss.resp, ss.scenario, ss.question = sample["response"], sample["scenario_id"], sample["question"]
                 ss.before = tenant.initial_state(ss.scenario)
             else:
-                with st.spinner("문서 검색 · 테넌트 조회 · 런북 작성 중..."):
+                with st.spinner("문서를 검색하고 테넌트를 조회해 런북을 만드는 중…"):
                     ss.resp = call_agent(question=ss.question, scenario_id=ss.scenario)
                 tid = ss.resp.get("thread_id")
                 ss.before = tenant.get_state(tid) if tid and tenant.has_thread(tid) else tenant.initial_state(ss.scenario)
@@ -207,7 +214,7 @@ with tab_main:
                         f = tenant.FAULTS.get(c["fault_id"], {})
                         st.markdown(f"<div class='cause'><span class='badge'>{c['fault_id']}</span> <b>{esc(f.get('name', ''))}</b>"
                                     f"<div class='bar'><b style='width:{c['confidence'] * 100:.0f}%'></b></div>"
-                                    f"<div class='muted'>확신도 {c['confidence']:.0%} · {esc(c.get('reason', ''))}</div>"
+                                    f"<div class='muted'>확신도 {c['confidence']:.0%}. {esc(c.get('reason', ''))}</div>"
                                     f"<div class='evi'>{''.join(f'<span>{esc(e)}</span>' for e in c['evidence_doc_ids'])}</div></div>",
                                     unsafe_allow_html=True)
                 with q:
@@ -227,8 +234,8 @@ with tab_main:
                             "<div class='muted' style='margin-top:6px'>승인 전에는 테넌트가 바뀌지 않습니다. 승인하면 승인 게이트 안에서만 조치가 실행되고, "
                             "같은 조치는 한 번만 적용됩니다.</div></div>", unsafe_allow_html=True)
                 b1, b2, _ = st.columns([1.4, 1.4, 2])
-                dec = "approve" if b1.button("✅ 승인", width="stretch", help="approve") else (
-                      "reject" if b2.button("⛔ 거절", width="stretch", help="reject") else None)
+                dec = "approve" if b1.button("승인 (approve)", type="primary", width="stretch") else (
+                      "reject" if b2.button("거절 (reject)", width="stretch") else None)
                 if dec:
                     if ss.demo:
                         tid = "t-demo"
@@ -244,7 +251,6 @@ with tab_main:
                             ss.resp = call_agent(thread_id=resp["thread_id"], decision=dec)
                         ss.after = tenant.get_state(resp["thread_id"])
                     ss.decided = dec
-                    st.toast("조치를 적용했습니다 (가상 테넌트)" if dec == "approve" else "거절했습니다 · 상태 변경 없음")
                     st.rerun()
 
             # ④ 전/후
@@ -279,11 +285,10 @@ with tab_main:
                         or "<span class='muted'>대기 중</span>", unsafe_allow_html=True)
         with st.container(border=True):
             st.markdown("**가드레일**")
-            st.markdown("<div class='muted'>🔒 개인정보·시크릿 마스킹<br>🛡️ 붙여넣은 내용 속 지시 무시<br>✋ 승인 없는 변경 금지<br>📎 근거 없으면 \"확인 필요\"</div>",
-                        unsafe_allow_html=True)
+            st.markdown("<div class='kv'><svg class='ico' viewBox='0 0 16 16' aria-hidden='true'><rect x='3' y='7' width='10' height='7' rx='1.5' fill='none' stroke='currentColor' stroke-width='1.5'/><path d='M5.5 7V5a2.5 2.5 0 0 1 5 0v2' fill='none' stroke='currentColor' stroke-width='1.5'/></svg><span>개인정보와 시크릿 마스킹</span><svg class='ico' viewBox='0 0 16 16' aria-hidden='true'><path d='M8 1.5 13.5 4v4c0 3-2.4 5.6-5.5 6.5C4.9 13.6 2.5 11 2.5 8V4z' fill='none' stroke='currentColor' stroke-width='1.5'/></svg><span>붙여넣은 내용 속 지시 무시</span><svg class='ico' viewBox='0 0 16 16' aria-hidden='true'><circle cx='8' cy='8' r='6.5' fill='none' stroke='currentColor' stroke-width='1.5'/><path d='M3.4 12.6 12.6 3.4' stroke='currentColor' stroke-width='1.5'/></svg><span>승인 없는 변경 금지</span><svg class='ico' viewBox='0 0 16 16' aria-hidden='true'><path d='M4 1.5h6l3 3v10H4z' fill='none' stroke='currentColor' stroke-width='1.5'/><path d='M6 8h5M6 11h5' stroke='currentColor' stroke-width='1.5'/></svg><span>근거 없으면 '확인 필요'</span></div>", unsafe_allow_html=True)
 
-    st.markdown("<div class='foot'>테넌트·메일 데이터는 모두 가상입니다 · 근거 문서: Gemini Enterprise 공식 문서(CC BY 4.0, 수집 2026-11-25)"
-                + (" · 샘플 응답 모드" if ss.demo else "") + "</div>", unsafe_allow_html=True)
+    st.markdown("<div class='foot'>테넌트와 메일 데이터는 모두 가상입니다. 근거 문서는 Gemini Enterprise 공식 문서(CC BY 4.0, 수집 2026-11-25)입니다."
+                + (" 지금은 샘플 응답 모드입니다." if ss.demo else "") + "</div>", unsafe_allow_html=True)
 
 # ================= 평가 대시보드 =================
 with tab_eval:
@@ -319,11 +324,11 @@ with tab_eval:
                 if vals:
                     rag.append({"라운드": name, "지표": k, "평균": sum(vals) / len(vals)})
         if rag:
-            st.markdown("**RAGAS 4지표** (positive·edge, 채점 모델 Haiku 4.5 기준)")
+            st.markdown("**RAGAS 4지표** (positive와 edge, 채점 모델 Haiku 4.5 기준)")
             st.bar_chart(pd.DataFrame(rag), x="지표", y="평균", color="라운드", stack=False)
         last = list(rounds)[-1]
         st.markdown(f"**케이스별 결과 ({last})**")
         st.dataframe(pd.DataFrame([{"id": r["id"], "범주": r["category"], "준블라인드": "AI 작성" if r["semi_blind"] else "",
-                                    "정답": r["expected_fault"], "1순위": r["top_fault"], "통과": "✅" if r["passed"] else "❌",
-                                    "도구 일치": "✅" if r["tool_match"] else "❌", "초": r["seconds"]} for r in rounds[last]]),
+                                    "정답": r["expected_fault"], "1순위": r["top_fault"], "통과": "통과" if r["passed"] else "실패",
+                                    "도구 일치": "일치" if r["tool_match"] else "불일치", "초": r["seconds"]} for r in rounds[last]]),
                      width="stretch", hide_index=True)
