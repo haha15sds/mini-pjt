@@ -195,12 +195,16 @@ def _run_react(state: State, config) -> dict:
 def agent(state: State, config) -> dict:
     if state.get("blocked") or state.get("analysis", {}).get("intent") == "secret_request":
         return {"contexts": [], "proposed": [], "trace": [_t("agent", "skip", "차단 또는 비밀값 요청으로 도구 실행 안 함")]}
-    with cf.ThreadPoolExecutor(1) as ex:
-        fut = ex.submit(_run_react, state, config)
-        try:
-            out = fut.result(timeout=TIMEOUT_S)
-        except cf.TimeoutError:
-            return {"timed_out": True, "contexts": [], "proposed": [], "trace": [_t("agent", "react", f"{TIMEOUT_S}초 초과")]}
+    # [리뷰 수정] with 블록은 빠져나올 때 작업이 끝날 때까지 기다려 60초 상한이 걸리지 않았다.
+    # 상한을 넘으면 기다리지 않고 바로 돌려준다(남은 스레드는 읽기·제안 도구만 쓰므로 상태를 바꾸지 않는다).
+    ex = cf.ThreadPoolExecutor(1)
+    fut = ex.submit(_run_react, state, config)
+    try:
+        out = fut.result(timeout=TIMEOUT_S)
+    except cf.TimeoutError:
+        return {"timed_out": True, "contexts": [], "proposed": [], "trace": [_t("agent", "react", f"{TIMEOUT_S}초 초과")]}
+    finally:
+        ex.shutdown(wait=False)
     out["messages"] = [m.model_dump() if hasattr(m, "model_dump") else m for m in out["messages"]][-4:]
     return out
 

@@ -76,4 +76,5 @@ def detect_injection(text: str) -> list[str]:
 
 
 REFUSE_SECRET = "보안상 시크릿·비밀번호 같은 비밀값은 확인하거나 다시 알려 드릴 수 없습니다."
-SECRET_REQUEST = re.compile(r"(시크릿|비밀\s?값|비밀번호|secret|password|키\s?값).{0,40}(다시\s*알려|알려\s*주|확인하고|보여\s*주|전체\s*값)", re.I | re.S)
+# [리뷰 수정] '확인하고'를 빼서 "시크릿이 만료됐는지 확인하고 싶어요" 같은 정상 문의는 거절하지 않는다.
+SECRET_REQUEST = re.compile(r"(시크릿|비밀\s?값|비밀번호|secret|password|키\s?값).{0,40}(다시\s*알려|알려\s*주|보여\s*주|전체\s*값)", re.I | re.S)
