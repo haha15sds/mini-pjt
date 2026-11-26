@@ -512,3 +512,24 @@
 🔧 2번: 정확한 GitHub noreply 주소를 받는 중. 주소를 받으면 저장소 전용 작성자 메일로 설정하고, 아직 올리지 않은 로컬 커밋 2개를 새 작성자로 다시 만들 예정(예전 이름·개인 메일이 기록에 남지 않게).
 👤 noreply 주소가 정확해야 하나? 예시로 하면 안 되나?
 🔧 정확하지 않아도 됨(커밋이 GitHub 프로필과 연결되지 않을 뿐, 개인 메일은 숨겨짐). 저장소 전용 작성자를 `haha15sds <haha15sds@users.noreply.github.com>`로 설정(전역 git 설정은 그대로). 로컬 커밋 기록을 새 작성자의 커밋 1개로 다시 만듦 — 예전 커밋에 남아 있던 개인 메일과 예전 폴더 이름까지 기록에서 제거.
+
+### 79. 강사 피드백 분석 (SERVICE.md)
+👤 강사 피드백 분석해서 반영 검토해 줘: (요지) 마스킹 위치·승인 게이트·범위 정리 좋음. F4·F5처럼 값 비교로 갈리는 원인을 LLM이 check_tenant_state 결과만 보고 찾으면 1순위 정확도가 흔들릴 수 있으니, tenant_baseline.json과 달라진 필드·그룹 개수를 코드로 계산해 함께 돌려주면 장애 ID 숨김은 지키면서 진단이 안정될 것.
+🔧 점검: 1·2·3차 모두 F4(P3·E3)·F5(P6) 1순위 정답. 단 라운드당 1회 실행이라 흔들림 미측정, P3에서 소문자 비교 오해석 문장, P6 faithfulness 0.611(최저), recent_errors 문구가 힌트 역할.
+🤖 피드백 타당 → planning.md §1-6에 반영안(제안): check_tenant_state에 코드 계산 `checks`(권장 구성 대비 차이, 그룹 한도 비교, 식별자 비교, subject 매핑, 사이트 권한) 추가, 장애 ID는 계속 숨김. 4차 평가 + 반복 실행으로 흔들림 비교. 동의 후 구현.
+
+### 80. 강사 피드백 반영 구현
+👤 구현·평가 진행
+🔧 `tenant.compute_checks()` 추가([추가 구현]): diff_from_reference(권장 구성 대비 path·reference·current), group_claim_check(OIDC 200/SAML 150 한도, 필터, 초과 사용자), identifier_check(email·upn·subject_seen 일치/대소문자만 다름/값이 다름, 권장 구성 대비 이메일 변경), subject_mapping_check, sites_check, entra_app_check. 장애 ID·이름 없음.
+🔧 시나리오 9개 단위 확인: S03 u03 '대소문자만 다름', S06·S08 u02 230>200, S05 subject가 oid, S04 site-rnd·S08 site-sales 권한 없음, S07 이메일 변경 감지, S00 이상 없음.
+🔧 check_tenant_state가 {checks, state}를 돌려주도록 변경(checks를 앞에 둬 계획 단계 글자 수 제한에 안 잘리게, tenant-state 근거 4,000자로 확대). 에이전트·계획 프롬프트에 'checks를 값 비교 근거로' 규칙.
+🔧 SERVICE.md §3 도구 설명, seed v1.5.0 D-15, planning §1-6·결정 기록 갱신. 4차 평가 + positive·edge 11건 반복 실행 중.
+
+### 81. 영어 답변 지적
+👤 피드백이 보통인 건 너가 갑자기 영어로 답변해 줘서 그런 거야.
+🤖 사과. 직전 진행 보고를 영어로 씀 → agents.md §2(항상 한국어) 위반. 같은 내용을 한국어로 다시 보고. 진행 중 짧은 상태 안내도 한국어로 쓰기로 함.
+
+### 82. 4차 평가 — 강사 피드백 반영 결과
+🔧 4차 평가(한도 오류 0건): 18/18, AC-1 4/4, faithfulness **0.893(0.8 이상 10/11)**, AC-4 7/7, AC-3 0, AC-5·AC-7 18/18. P6(F5) 0.611→0.800, E4(F3) 0.565→0.846. answer_relevancy 0.312(계속 하락), context_precision 0.508, context_recall 0.939.
+🔧 흔들림 측정: positive·edge 11건 반복 실행 → 1순위 원인 두 번 모두 같음 11/11, 모두 정답 11/11. 한계: 반영 전엔 반복 실행이 없어 직접 비교 불가.
+🔧 round4_report.md §5(피드백·반영·3차 대비·반복 실행), README(RAGAS 4차 열, 4차 줄, 개선폭 0.241→0.893), 대시보드에 4차 추가.

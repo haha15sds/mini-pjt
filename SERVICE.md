@@ -57,7 +57,7 @@
 | 도구 | 기능 | 인터페이스 |
 |---|---|---|
 | `retrieve_docs` | 공식 문서 하이브리드 검색(Chroma 벡터 + BM25, kiwipiepy 형태소). 한국어 질문과 LLM이 만든 영어 검색어를 함께 사용 | `(query_ko, query_en) -> [{doc_id, text, url}]` |
-| `check_tenant_state` | 가상 테넌트의 설정값과 최근 오류 조회(읽기 전용). 장애 ID는 돌려주지 않음 | `() -> {entra_app, wif_mapping, sharepoint, users, recent_errors}` |
+| `check_tenant_state` | 가상 테넌트의 설정값과 최근 오류 조회(읽기 전용). 값 비교는 **코드로 계산한 checks**(권장 구성 대비 달라진 필드, 사용자별 그룹 수와 토큰 한도 비교, 이메일·UPN·식별자 대소문자 비교, subject 매핑, 권한 없는 사이트)로 함께 돌려줌. 장애 ID는 돌려주지 않음 | `() -> {checks, state}` |
 | `propose_fix` | 조치 제안만 기록(fix catalog의 `fix_id`만 허용) | `(fix_id) -> pending_action` |
 | `apply_fix` | 승인 게이트(`approval_gate`)가 approve로 재개된 뒤에만 실행. thread·fix_id당 1회 | 에이전트가 호출할 수 없음 |
 

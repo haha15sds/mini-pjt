@@ -141,3 +141,55 @@ def diff(before: dict, after: dict, prefix: str = "") -> list[dict]:
         elif b != a:
             out.append({"path": p, "before": b, "after": a})
     return out
+
+
+# ---------- [추가 구현] 코드로 계산한 점검 결과 (강사 피드백 반영, D-15) ----------
+# 값 비교로 갈리는 원인(대소문자, 그룹 수 한도 등)은 LLM이 원본 JSON을 눈으로 비교하면 흔들릴 수 있으므로
+# 비교는 코드가 하고 결과만 돌려준다. 장애 ID·장애 이름은 넣지 않는다.
+GROUP_CLAIM_LIMIT = {"OIDC": 200, "SAML": 150}   # Entra ID 토큰 그룹 클레임 한도 (공식 문서 ge-idp)
+
+
+def compute_checks(state: dict) -> dict:
+    ref = BASELINE
+    checks: dict = {"reference": "권장 구성(data/tenant_baseline.json)과 비교한 결과"}
+
+    changed = [{"path": c["path"], "reference": c["before"], "current": c["after"]}
+               for c in diff(ref, state) if not c["path"].startswith("recent_errors")]
+    checks["diff_from_reference"] = changed
+
+    provider = state.get("wif_mapping", {}).get("provider", "")
+    proto = "SAML" if "SAML" in provider.upper() else "OIDC"
+    limit = GROUP_CLAIM_LIMIT[proto]
+    filt = state.get("wif_mapping", {}).get("group_claims_filter")
+    over = [{"user_id": u["user_id"], "group_count": u.get("group_count", 0)}
+            for u in state.get("users", []) if u.get("group_count", 0) > limit]
+    checks["group_claim_check"] = {"protocol": proto, "limit": limit, "group_claims_filter": filt,
+                                   "filter_limits_to_assigned_groups": filt == "groups_assigned_to_application",
+                                   "users_over_limit": over}
+
+    ids = []
+    for u in state.get("users", []):
+        vals = {k: u.get(k, "") for k in ("email", "upn", "subject_seen")}
+        exact = len(set(vals.values())) == 1
+        lower_same = len({v.lower() for v in vals.values()}) == 1
+        ref_u = next((x for x in ref.get("users", []) if x["user_id"] == u["user_id"]), {})
+        ids.append({"user_id": u["user_id"],
+                    "email_upn_subject": "일치" if exact else ("대소문자만 다름" if lower_same else "값이 다름"),
+                    "email_changed_from_reference": bool(ref_u) and ref_u.get("email") != u.get("email"),
+                    "has_uppercase": any(c.isupper() for c in vals["subject_seen"])})
+    checks["identifier_check"] = ids
+
+    subj = state.get("wif_mapping", {}).get("google_subject", "")
+    checks["subject_mapping_check"] = {"google_subject": subj, "email_based": "email" in subj or "upn" in subj,
+                                       "lowercased": "lowerAscii" in subj, "uses_object_id": "oid" in subj}
+
+    sp = state.get("sharepoint", {})
+    checks["sites_check"] = {"permission_mode": sp.get("permission_mode"),
+                             "sites_without_fullcontrol": [s["site_id"] for s in sp.get("sites", [])
+                                                           if s.get("selected") and not s.get("fullcontrol_granted")]}
+
+    app = state.get("entra_app", {})
+    checks["entra_app_check"] = {"admin_consent": app.get("admin_consent"),
+                                 "write_actions_enabled": app.get("write_actions_enabled"),
+                                 "write_scopes_present": bool(app.get("write_scopes"))}
+    return checks

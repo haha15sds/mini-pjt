@@ -164,6 +164,22 @@
 - 일정: Day 9는 이미 8h가 차 있음 → UI 핵심은 Day 10 '문서·캡처' 시간과 겹쳐 진행(UI 화면이 곧 시연 캡처), MCP는 빼는 쪽으로
 - 반영 필요: Seed C-9(축소 순서), C-10(파일 목록에 `app.py`), requirements(streamlit)
 
+### 1-6. 강사 피드백 반영 (2026-11-26, ✅ 구현 — 4차 평가로 검증)
+
+**피드백 요지**: 마스킹 위치·승인 게이트 구조·범위 정리는 좋음. F4(대소문자)·F5(그룹 클레임 한도)처럼 **값 비교로 갈리는 원인**을 LLM이 check_tenant_state 원본만 보고 찾으면 1순위 정확도가 흔들릴 수 있음 → 기준 설정과 달라진 필드·그룹 개수를 **코드로 계산해 함께 돌려주면** 장애 ID를 숨긴 채 진단이 안정됨.
+
+**현재 상태 점검**: 1·2·3차 모두 P3·E3(F4), P6(F5) 1순위는 맞혔다. 다만 각 라운드 1회 실행뿐이라 흔들림은 측정하지 않았고, P3 답변에서 소문자 비교를 잘못 해석한 문장이 나왔으며 P6 faithfulness가 0.611로 가장 낮다. 또 테넌트 데이터의 recent_errors 문구가 힌트를 주고 있어, 실제처럼 오류 문구가 덜 친절하면 더 흔들릴 수 있다 → **피드백 타당, 반영 권장**.
+
+**반영안**: check_tenant_state 결과에 `checks`(코드 계산 결과)를 덧붙인다. 장애 ID·장애 이름은 넣지 않는다.
+- `diff_from_reference`: 권장 구성(tenant_baseline.json)과 달라진 필드 목록 [{path, reference, current}]
+- `group_claim_check`: 사용자별 group_count와 토큰 한도(OIDC 200 / SAML 150, 공식 문서 값) 비교, 초과 사용자 목록
+- `identifier_check`: 사용자별 email·upn·subject_seen 비교 — 완전 일치 / 대소문자만 다름 / 값이 다름
+- `subject_mapping_check`: google.subject 매핑이 이메일 기반인지(소문자화 포함) 여부
+- `sites_check`: Sites.Selected 모드에서 fullcontrol 미부여 사이트 목록
+
+**영향 범위**: tools.py(check_tenant_state), tenant.py(계산 함수), 에이전트·계획 프롬프트에 "checks를 우선 근거로" 한 줄, SERVICE.md §3 도구 설명, seed D-15, README. UI 진단 화면에 checks 요약 표시(선택).
+**검증**: 4차 평가 18건 + positive·edge 11건을 한 번 더 돌려 1순위 원인 일치율을 2회 비교(흔들림 측정). 토큰 사용이 늘어나므로 한도 위험 있음.
+
 ### 1-2. Ouroboros 인터뷰 설계안 (2026-11-25, 2라운드 기준 — 1-3으로 대체됨)
 
 **한 줄 요약**: SA가 고객 메일을 붙여넣으면 에이전트가 문서·런북을 검색하고 가상 테넌트를 조회해 **원인 후보와 조치 런북**을 돌려준다. 변경 조치는 사람이 승인한 뒤에만 실행한다.
@@ -347,3 +363,5 @@
 | 2026-11-25 | Streamlit UI(app.py) 핵심 5개 + 선택 2개(그래프 진행, 평가 대시보드) 구현, 샘플 응답 모드로 화면 확인. 실제 에이전트 연결 확인은 한도 해제 후 |
 | 2026-11-25 | 2차 평가 18/18(+4), faithfulness 0.734(AC-2 0.8 미달), 같은 모델 global 프로필 대체 호출 추가. README·round2_report 반영 |
 | 2026-11-25 | 3차 개선(답변 형식·근거 표기) 후 3차 평가 18/18, faithfulness 0.853 → 필수 기준 AC-1~AC-7 충족(AC-8 깨끗한 clone은 미검증) |
+| 2026-11-26 | 강사 피드백 반영: check_tenant_state에 코드 계산 checks 추가(D-15, Seed v1.5.0), SERVICE.md §3 도구 설명 갱신. 4차 평가 + positive·edge 반복으로 흔들림 측정 |
+| 2026-11-26 | 4차 평가 18/18, faithfulness 0.893, 반복 실행 1순위 11/11 동일 → 강사 피드백 반영 효과 확인 |

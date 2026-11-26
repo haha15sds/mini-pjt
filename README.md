@@ -83,23 +83,24 @@ copy .env.example .env
 
 positive·edge 11건, 채점 모델 Claude Haiku 4.5 (1차는 저장된 답변을 같은 모델로 다시 채점해 비교)
 
-| 지표 | 1차 | 2차 | 3차 (최종) |
-|---|---|---|---|
-| faithfulness | 0.241 | 0.734 | **0.853** |
-| answer_relevancy | 0.447 | 0.388 | 0.338 |
-| context_precision (with reference) | 0.600 | 0.503 | 0.524 |
-| context_recall | 0.667 | 0.909 | 0.909 |
+| 지표 | 1차 | 2차 | 3차 | 4차 (최종) |
+|---|---|---|---|---|
+| faithfulness | 0.241 | 0.734 | 0.853 | **0.893** |
+| answer_relevancy | 0.447 | 0.388 | 0.338 | 0.312 |
+| context_precision (with reference) | 0.600 | 0.503 | 0.524 | 0.508 |
+| context_recall | 0.667 | 0.909 | 0.909 | 0.939 |
 
 - 1차 원본 보고서(Sonnet 채점): [evaluation/round1_report.md](evaluation/round1_report.md) — faithfulness 0.111
 - reference는 정답 장애 이름과 공식 문서 근거 요약으로 만들었다.
-- 3차에서 faithfulness가 필수 기준 0.8을 넘었다(0.853, 0.8 이상 9/11건). answer_relevancy는 라운드마다 내려갔다 — 근거성을 우선해 답변을 근거 나열 위주로 바꾼 대가다(분석: [round3_report.md](evaluation/round3_report.md) §5).
+- 3차에서 faithfulness가 필수 기준 0.8을 넘었고(0.853), 강사 피드백을 반영한 4차에서 0.893(0.8 이상 10/11건)이 됐다. answer_relevancy는 라운드마다 내려갔다 — 근거성을 우선해 답변을 근거 나열 위주로 바꾼 대가다(분석: [round3_report.md](evaluation/round3_report.md) §5, [round4_report.md](evaluation/round4_report.md) §5).
 
 ## 인-아웃 세트 통과율 (자체 평가)
 
 - 1차 (Day 9 종료): **14 / 18 통과** (positive 6/7, negative 4/4, edge 3/4, guardrail 1/3)
 - 2차 (Day 10 개선 후): **18 / 18 통과** (positive 7/7, negative 4/4, edge 4/4, guardrail 3/3) — [evaluation/round2_report.md](evaluation/round2_report.md)
 - 3차 (faithfulness 개선): **18 / 18 통과**, faithfulness 0.734 → 0.853 — [evaluation/round3_report.md](evaluation/round3_report.md)
-- 개선폭: 통과 **+4건**(1차→2차), faithfulness **0.241 → 0.853** / 주요 개선 사항: 평가기 판정 오류 수정, 마스킹 토큰 재탐지 버그 수정, F3·F4 구분 규칙, 원인별 근거 재검색, 테넌트 상태를 근거로 포함, 답변과 메타데이터 분리
+- 4차 (강사 피드백 반영: 값 비교를 코드로): **18 / 18 통과**, faithfulness 0.893, positive·edge 반복 실행에서 1순위 원인 11/11 동일 — [evaluation/round4_report.md](evaluation/round4_report.md)
+- 개선폭: 통과 **+4건**(1차→2차), faithfulness **0.241 → 0.893** / 주요 개선 사항: 평가기 판정 오류 수정, 마스킹 토큰 재탐지 버그 수정, F3·F4 구분 규칙, 원인별 근거 재검색, 테넌트 상태를 근거로 포함, 답변과 메타데이터 분리
 
 평가 세트: [evaluation/test_queries.csv](evaluation/test_queries.csv) (positive 7 · negative 4 · edge 4 · guardrail 3, 이 중 5건은 원인 이름만 본 별도 AI가 작성한 "AI 작성 준블라인드" 케이스로 튜닝 전에 고정)
 

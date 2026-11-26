@@ -47,9 +47,11 @@ def ctx_entry(c) -> dict:
 
 @tool
 def check_tenant_state(config: RunnableConfig) -> str:
-    """현재 고객 테넌트(가상)의 Entra 앱 권한, WIF 매핑, 그룹 클레임, SharePoint 사이트 권한, 사용자 식별자, 최근 오류를 읽는다. 읽기 전용."""
+    """현재 고객 테넌트(가상)의 Entra 앱 권한, WIF 매핑, 그룹 클레임, SharePoint 사이트 권한, 사용자 식별자, 최근 오류를 읽는다. 읽기 전용.
+    결과의 checks는 코드로 계산한 비교 결과(권장 구성 대비 차이, 그룹 수 한도, 식별자 대소문자 등)이므로 값 비교는 checks를 우선 근거로 쓴다."""
     state = tenant.get_state(_thread_id(config))
-    return json.dumps(state, ensure_ascii=False, indent=1)
+    # [추가 구현] 값 비교는 코드가 하고 결과(checks)를 함께 돌려준다 (강사 피드백, D-15). 장애 ID는 넣지 않는다.
+    return json.dumps({"checks": tenant.compute_checks(state), "state": state}, ensure_ascii=False, indent=1)
 
 
 @tool
