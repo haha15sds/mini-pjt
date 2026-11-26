@@ -138,6 +138,14 @@ def get_retriever() -> HybridRetriever:
     return HybridRetriever()
 
 
+def warm_up() -> int:
+    """[추가 구현] 검색 인덱스를 미리 만든다. 깨끗한 clone에서는 chroma_db가 없어 첫 요청 안에서 임베딩 209개를 만들다
+    에이전트 시간 상한(60초)을 넘겼다(AC-8 점검에서 발견). 서버·평가 시작 때 한 번 불러 둔다. 청크 수를 돌려준다."""
+    r = get_retriever()
+    r._vectorstore()
+    return len(r.chunks)
+
+
 if __name__ == "__main__":
     r = get_retriever()
     print(f"청크 {len(r.chunks)}개")

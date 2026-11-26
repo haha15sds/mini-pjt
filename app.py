@@ -81,7 +81,14 @@ for k, v in {"resp": None, "before": None, "after": None, "question": "", "scena
     ss.setdefault(k, v)
 
 
+@st.cache_resource(show_spinner="검색 인덱스 준비 중... (처음 한 번)")
+def _warm() -> int:
+    from retriever import warm_up
+    return warm_up()
+
+
 def call_agent(**kw) -> dict:
+    _warm()   # [추가 구현] 실제 에이전트를 처음 부를 때 인덱스를 먼저 준비
     from agent import handle_query  # Bedrock 클라이언트는 실제 호출 때만 불러온다
     return handle_query(**kw)
 

@@ -237,6 +237,8 @@ def main() -> None:
     started = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
     t0 = time.time()
     agent.reset_checkpoints()
+    from retriever import warm_up
+    print(f"검색 인덱스 준비: 청크 {warm_up()}개", flush=True)   # [추가 구현] 첫 케이스가 인덱스 생성 시간을 떠안지 않게
     rows = list(csv.DictReader(open(ROOT / "evaluation" / "test_queries.csv", encoding="utf-8-sig")))
     if a.ids:
         want = set(a.ids.split(","))

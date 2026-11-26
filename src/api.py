@@ -16,6 +16,10 @@ from pydantic import BaseModel
 
 from agent import handle_query
 
+from retriever import warm_up
+
+warm_up()   # [추가 구현] 서버가 요청을 받기 전에 검색 인덱스를 준비한다 (깨끗한 clone 첫 요청 시간 초과 방지)
+
 app = FastAPI(title="Gemini Enterprise 설정 지원 에이전트", version="1.0")
 
 
