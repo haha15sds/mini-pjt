@@ -221,3 +221,27 @@ def compute_checks(state: dict) -> dict:
     checks["not_a_problem"] = ok
     order = ["findings", "not_a_problem"] + [k for k in checks if k not in ("findings", "not_a_problem")]
     return {k: checks[k] for k in order}
+
+
+def supported_faults(checks: dict) -> set[str]:
+    """[불일치 대응] 코드 점검 결과로 근거가 확인되는 장애 ID 집합. 에이전트에게는 보여 주지 않고,
+    계획 단계가 낸 원인 후보를 검증하는 데만 쓴다(테넌트에 근거 없는 원인 제거, 빠진 실제 문제 보충)."""
+    out = set()
+    app = checks.get("entra_app_check", {})
+    if app.get("admin_consent") is False:
+        out.add("F1")
+    if app.get("write_actions_enabled") and not app.get("write_scopes_present"):
+        out.add("F2")
+    sm = checks.get("subject_mapping_check", {})
+    if sm.get("uses_object_id") or not sm.get("email_based", True):
+        out.add("F3")
+    # subject가 객체 ID로 매핑되면 모든 사용자의 식별자가 이메일과 달라 보이는데, 이는 F3의 결과이므로 F4로 따로 세지 않는다
+    if "F3" not in out and any(i["email_upn_subject"] != "일치" or i["email_changed_from_reference"] or i["has_uppercase"]
+                               for i in checks.get("identifier_check", [])):
+        out.add("F4")
+    g = checks.get("group_claim_check", {})
+    if g.get("users_over_limit") and not g.get("filter_limits_to_assigned_groups"):
+        out.add("F5")
+    if checks.get("sites_check", {}).get("sites_without_fullcontrol"):
+        out.add("F6")
+    return out

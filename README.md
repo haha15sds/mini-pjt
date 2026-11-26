@@ -84,12 +84,12 @@ copy .env.example .env
 
 positive·edge 11건, 채점 모델 Claude Haiku 4.5 (1차는 저장된 답변을 같은 모델로 다시 채점해 비교)
 
-| 지표 | 1차 | 2차 | 3차 | 4차 | 5차 | 6차 (최종) |
-|---|---|---|---|---|---|---|
-| faithfulness | 0.241 | 0.734 | 0.853 | 0.893 | 0.886 | **0.892** |
-| answer_relevancy | 0.447 | 0.388 | 0.338 | 0.312 | 0.272 | 0.311 |
-| context_precision (with reference) | 0.600 | 0.503 | 0.524 | 0.508 | 0.512 | 0.512 |
-| context_recall | 0.667 | 0.909 | 0.909 | 0.939 | 0.939 | 0.939 |
+| 지표 | 1차 | 2차 | 3차 | 4차 | 5차 | 6차 | 7차 (최종) |
+|---|---|---|---|---|---|---|---|
+| faithfulness | 0.241 | 0.734 | 0.853 | 0.893 | 0.886 | 0.892 | **0.836** |
+| answer_relevancy | 0.447 | 0.388 | 0.338 | 0.312 | 0.272 | 0.311 | 0.275 |
+| context_precision (with reference) | 0.600 | 0.503 | 0.524 | 0.508 | 0.512 | 0.512 | 0.512 |
+| context_recall | 0.667 | 0.909 | 0.909 | 0.939 | 0.939 | 0.939 | 0.909 |
 
 - 1차 원본 보고서(Sonnet 채점): [evaluation/round1_report.md](evaluation/round1_report.md) — faithfulness 0.111
 - reference는 정답 장애 이름과 공식 문서 근거 요약으로 만들었다.
@@ -103,6 +103,8 @@ positive·edge 11건, 채점 모델 Claude Haiku 4.5 (1차는 저장된 답변�
 - 4차 (강사 피드백 반영: 값 비교를 코드로): **18 / 18 통과**, faithfulness 0.893, positive·edge 반복 실행에서 1순위 원인 11/11 동일 — [evaluation/round4_report.md](evaluation/round4_report.md)
 - 5차 (강사 힌트 집중 점검 반영: 코드가 '문제/문제 아님'까지 판정): **18 / 18 통과**, faithfulness 0.886 — [evaluation/round5_report.md](evaluation/round5_report.md)
 - 6차 (코드 리뷰 반영: 60초 상한 수정, 정상 시크릿 문의 오거절 수정): **18 / 18 통과**, faithfulness 0.892 — [evaluation/round6_report.md](evaluation/round6_report.md)
+- 7차 (불일치 대응: 문의 증상과 테넌트 상태가 맞지 않을 때 실제 문제는 알리되 단정하지 않음): **18 / 18 통과**, faithfulness 0.836 — [evaluation/round7_report.md](evaluation/round7_report.md)
+- 불일치 점검(문의는 그대로, 시나리오만 다른 장애로 바꾼 8조합): 바람직한 답 0/8 → **7/8** — [evaluation/mismatch_report.md](evaluation/mismatch_report.md)
 - 강사 힌트 집중 점검(값 비교 원인 변형 20개, 같은 모호한 문의): checks 없음 14/20 → 비교값만 14/20 → **문제 판정까지 20/20** — [evaluation/stress_hint_report.md](evaluation/stress_hint_report.md)
 - 개선폭: 통과 **+4건**(1차→2차), faithfulness **0.241 → 0.893** / 주요 개선 사항: 평가기 판정 오류 수정, 마스킹 토큰 재탐지 버그 수정, F3·F4 구분 규칙, 원인별 근거 재검색, 테넌트 상태를 근거로 포함, 답변과 메타데이터 분리
 
@@ -115,10 +117,11 @@ LLM-as-Judge (positive·edge 11건, judge Claude Sonnet 4.5, 1~5점): 정확성 
 | 표기 | 뜻 | 예 |
 |---|---|---|
 | P · N · E · G + 숫자 | 평가 케이스 id. 과제 범주 positive · negative · edge · guardrail의 첫 글자 | P6, N3, G1 |
-| R1~R5 | 가드레일 **규칙**(Rule). SERVICE.md §4 | R1 개인정보, R2 시크릿, R3 인젝션, R4 승인 없는 변경 금지, R5 근거 없으면 확인 필요 |
+| R1~R5 | 가드레일 **규칙**(Rule). SERVICE.md §4 | R1 개인정보, R2 시크릿, R3 인젝션, R4 승인 없는 변경 금지, R5 근거 없거나 증상과 맞지 않으면 확인 필요 |
 | S00~S08 | 가상 테넌트 시나리오(Scenario). S00은 정상 | S06 그룹 클레임 한도 초과 |
 | F1~F6 | 장애 종류(Fault). `data/faults.json` | F5 그룹 클레임 한도 |
 | H01~H20 | 강사 힌트 집중 점검 변형(Hint) | H17 그룹 정확히 200개 |
+| M01~M08 | 불일치 점검(Mismatch): 문의는 그대로, 시나리오만 다른 장애로 | M01 = P6 문의 + S04 |
 
 케이스 G1(개인정보·인젝션 문의)과 규칙 R1·R3처럼 케이스와 규칙은 번호가 서로 다르다. **6차 이전 보고서와 history.md의 'G1~G5'는 지금의 규칙 R1~R5**를 뜻한다(2026-11-26에 이름을 바꿈).
 

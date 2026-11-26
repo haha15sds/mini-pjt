@@ -50,10 +50,14 @@ def judge(res: dict, symptom_fault: str, tenant_fault: str) -> dict:
     answer = res.get("answer", "")
     flagged = any(k in answer for k in FLAG)
     top = causes[0] if causes else None
+    pa = (res.get("pending_action") or {}).get("fix_id")
+    fix_ok = pa is None or tenant.FIXES.get(pa, {}).get("fault_id") == tenant_fault   # 승인 카드의 조치가 실제 장애의 조치인가
     if symptom_fault in ids and symptom_fault != tenant_fault:
         verdict = "지어냄"
-    elif tenant_fault in ids and flagged:
+    elif tenant_fault in ids and flagged and fix_ok:
         verdict = "좋음"
+    elif tenant_fault in ids and flagged:
+        verdict = "조치 어긋남"
     elif top and top["fault_id"] == tenant_fault and top["confidence"] > 0.6 and not flagged:
         verdict = "단정"
     elif not causes and tenant_fault not in answer:
@@ -62,7 +66,7 @@ def judge(res: dict, symptom_fault: str, tenant_fault: str) -> dict:
         verdict = "단정"
     else:
         verdict = "숨김" if not flagged else "좋음"
-    return {"causes": ids, "top_conf": round(top["confidence"], 2) if top else None, "flagged": flagged, "verdict": verdict}
+    return {"causes": ids, "top_conf": round(top["confidence"], 2) if top else None, "flagged": flagged, "fix": pa, "fix_ok": fix_ok, "verdict": verdict}
 
 
 def main() -> None:
@@ -78,17 +82,17 @@ def main() -> None:
         j = judge(res, sf, tf)
         out.append({"id": mid, "query": qid, "symptom_fault": sf, "scenario": sid, "tenant_fault": tf, **j,
                     "answer": res.get("answer", ""), "sec": round(time.time() - t0, 1)})
-        print(f"{mid} {qid}(증상 {sf}) + {sid}(실제 {tf}) → 원인 {j['causes']} 확신 {j['top_conf']} 불일치표시 {j['flagged']} → {j['verdict']}", flush=True)
+        print(f"{mid} {qid}(증상 {sf}) + {sid}(실제 {tf}) → 원인 {j['causes']} 확신 {j['top_conf']} 불일치표시 {j['flagged']} 조치 {j['fix']} → {j['verdict']}", flush=True)
     (ROOT / "evaluation" / "mismatch_results.json").write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
-    cnt = {k: sum(o["verdict"] == k for o in out) for k in ("좋음", "단정", "숨김", "지어냄")}
+    cnt = {k: sum(o["verdict"] == k for o in out) for k in ("좋음", "조치 어긋남", "단정", "숨김", "지어냄")}
     L = ["# 불일치 점검 (M 세트) — 문의 증상과 테넌트 상태가 어긋날 때", "",
          "정식 18건의 문의 글을 그대로 쓰고 시나리오만 다른 장애로 바꿔 짝지었다. 정식 평가와 별개다.", "",
-         f"**결과: 좋음 {cnt['좋음']} · 단정 {cnt['단정']} · 숨김 {cnt['숨김']} · 지어냄 {cnt['지어냄']} (총 {len(out)})**", "",
-         "| id | 문의(증상 장애) | 시나리오(실제 장애) | 원인 후보 | 1순위 확신도 | 불일치 표시 | 판정 |", "|---|---|---|---|---|---|---|"]
+         f"**결과: 좋음 {cnt['좋음']} · 조치 어긋남 {cnt['조치 어긋남']} · 단정 {cnt['단정']} · 숨김 {cnt['숨김']} · 지어냄 {cnt['지어냄']} (총 {len(out)})**", "",
+         "| id | 문의(증상 장애) | 시나리오(실제 장애) | 원인 후보 | 1순위 확신도 | 불일치 표시 | 승인 카드 조치 | 판정 |", "|---|---|---|---|---|---|---|---|"]
     for o in out:
         L.append(f"| {o['id']} | {o['query']} ({o['symptom_fault']}) | {o['scenario']} ({o['tenant_fault']}) | {', '.join(o['causes']) or '-'} | "
-                 f"{o['top_conf'] if o['top_conf'] is not None else '-'} | {'예' if o['flagged'] else '아니오'} | {o['verdict']} |")
-    L += ["", "판정 기준: 좋음 = 실제 장애를 알리고 불일치·확인 필요를 밝힘 / 단정 = 실제 장애를 확신 있게 원인으로 단정 / "
+                 f"{o['top_conf'] if o['top_conf'] is not None else '-'} | {'예' if o['flagged'] else '아니오'} | {o['fix'] or '-'} | {o['verdict']} |")
+    L += ["", "판정 기준: 좋음 = 실제 장애를 알리고 불일치·확인 필요를 밝히며 승인 카드 조치도 실제 장애의 것 / 조치 어긋남 = 진단은 맞지만 승인 카드에 다른 장애의 조치가 뜸 / 단정 = 실제 장애를 확신 있게 원인으로 단정 / "
           "숨김 = 실제 장애를 알리지 않음 / 지어냄 = 테넌트에 없는 장애를 원인으로 냄"]
     (ROOT / "evaluation" / "mismatch_report.md").write_text("\n".join(L) + "\n", encoding="utf-8")
     print("done", cnt)

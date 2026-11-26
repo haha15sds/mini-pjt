@@ -10,6 +10,7 @@ from __future__ import annotations
 import concurrent.futures as cf
 import json
 import operator
+import re
 import os
 import sqlite3
 import time
@@ -88,6 +89,8 @@ class Diagnosis(BaseModel):
     steps: list[Step] = Field(description="조치 런북 단계")
     fix_id: Optional[str] = Field(default=None, description="1순위 원인에 맞는 fix catalog 조치. 없으면 null")
     summary_ko: str = Field(description="관리자에게 보여 줄 한국어 요약 (2~4문장, 근거 doc_id 표기)")
+    symptom_matches: bool = Field(default=True, description="문의에 적힌 증상을 테넌트 점검(findings)에서 확인된 문제로 설명할 수 있으면 true, "
+                                  "증상과 findings가 맞지 않으면 false")
 
 
 # ---------------- State ----------------
@@ -226,6 +229,9 @@ PLAN_PROMPT = ChatPromptTemplate.from_messages([
                "checks가 모두 정상이면 장애 원인을 단정하지 않는다.\n"
                "[4차 보완] 원인 후보는 checks.findings에 나온 문제에서만 고른다. checks.not_a_problem에 적힌 항목이나 findings에 없는 단순 차이는 "
                "원인으로 넣지 않는다. findings가 '문제로 판정된 설정이 없다'이면 causes를 비우고 '확인 필요'로 쓴다.\n"
+               "[불일치 대응] 문의 증상과 checks.findings가 맞지 않을 수 있다(관리자 설명이 부정확하거나 다른 문제가 겹친 경우). 이때는 "
+               "symptom_matches=false로 두고, findings에 있는 실제 문제는 원인 후보에 올리되 증상을 그 문제로 설명하는 연결 문장을 지어내지 않는다. "
+               "문의 글 속 진술만으로 findings에 없는 장애를 원인으로 내지 않는다.\n"
                "구분 규칙:\n"
                "- F3 vs F4: WIF 매핑 설정(google.subject) 자체가 객체 ID(oid, GUID) 등으로 잘못돼 사용자 전체가 영향을 받으면 F3. "
                "매핑 설정은 정상인데 특정 사용자의 이메일·UPN 변경이나 대소문자 차이 때문이면 F4.\n"
@@ -236,7 +242,7 @@ PLAN_PROMPT = ChatPromptTemplate.from_messages([
 plan_chain = PLAN_PROMPT | llm_main.with_structured_output(Diagnosis).with_fallbacks([llm_main_g.with_structured_output(Diagnosis)])
 
 
-def plan_runbook(state: State) -> dict:
+def plan_runbook(state: State, config) -> dict:
     intent = state.get("analysis", {}).get("intent")
     if state.get("blocked"):
         return {"diagnosis": None, "pending_action": None, "trace": [_t("plan_runbook", "blocked", "입력 차단")]}
@@ -253,6 +259,39 @@ def plan_runbook(state: State) -> dict:
         "docs": "\n\n".join(f"[{c['doc_id']}] {c['section']}\n{c['text'][:4000 if c['doc_id'] == 'tenant-state' else 700]}" for c in ctx) or "(없음)",
         "notes": notes, "proposed": state.get("proposed") or "없음",
     })
+    # [불일치 대응] 테넌트를 조회했다면, 원인 후보를 코드 점검 결과로 검증한다.
+    #  - 테넌트에 근거가 없는 장애(문의 글만 보고 낸 원인)는 뺀다
+    #  - 점검에서 확인된 실제 문제가 빠졌으면 보충한다
+    #  - 증상과 맞지 않으면(모델 판단 또는 원인이 빠진 경우) 확신도를 0.5 이하로 낮추고 답변에 불일치를 밝힌다
+    #  불일치 점검(M 세트) 1회차에서 좋음 0/8(끼워 맞춤 3·지어냄 2·실제 문제 누락 3)이라 추가했다.
+    mismatch = not d.symptom_matches
+    if any(c["doc_id"] == "tenant-state" for c in ctx):
+        tid = (config or {}).get("configurable", {}).get("thread_id")
+        sup = tenant.supported_faults(tenant.compute_checks(tenant.get_state(tid))) if tid else set()
+        kept = [c for c in d.causes if c.fault_id == "none" or c.fault_id in sup]
+        dropped = len(kept) != len(d.causes)
+        real_kept = {c.fault_id for c in kept if c.fault_id != "none"}
+        missing = sup - real_kept
+        kept = [c for c in kept if c.fault_id != "none" or not missing]
+        for fid in sorted(missing):
+            kept.append(Cause(fault_id=fid, reason="테넌트 코드 점검(findings)에서 확인된 문제", confidence=0.5, evidence_doc_ids=["tenant-state"]))
+        if dropped or (missing and not real_kept):
+            mismatch = True
+        d.causes = kept
+        if mismatch:
+            for c in d.causes:
+                c.confidence = min(c.confidence, 0.5)
+            # 요약에서 증상과 점검 결과를 잇는 연결 문장(근거 없는 추론)을 빼고 '테넌트 상태:'·'문서' 문장만 남긴다
+            sents = [x.strip() for x in re.split(r"(?<=[.다])\s+", d.summary_ko) if x.strip()]
+            keep = [x for x in sents if x.startswith(("테넌트 상태", "문서"))]
+            if keep:
+                d.summary_ko = " ".join(keep)
+            # 조치 단계는 점검에서 확인된 문제의 조치 목록 항목과 '증상 원인 추가 확인'으로 바꾼다(증상 쪽 장애 조치가 섞이지 않게)
+            real_ids = [c.fault_id for c in d.causes if c.fault_id != "none"]
+            fx = [f for f in tenant.FIXES.values() if f["fault_id"] in real_ids]
+            d.steps = [Step(action=f["action"], risk=f["risk"], source=f"fix:{f['fix_id']}") for f in fx] + [
+                Step(action="문의하신 증상의 원인은 테넌트 점검에서 근거를 찾지 못했으므로, 증상이 나타나는 사용자·시점·오류 메시지를 추가로 확인한다",
+                     risk="low", source="tenant-state")]
     # R5: 근거 doc_id 가 contexts 에 없는 원인은 버린다 (AC-5)
     # [2차] 버리기 전에, 공식 문서 근거가 없는 원인은 그 장애의 이름·근거 요약으로 한 번 더 검색해 본다(원인별 근거 재검색).
     #       1차 E1(장애 2개)에서 두 원인이 모두 근거 부족으로 지워졌다.
@@ -276,6 +315,9 @@ def plan_runbook(state: State) -> dict:
     real = [c for c in causes if c.fault_id != "none"]
     pending = None
     fix_id = d.fix_id or (state.get("proposed") or [None])[0]
+    # [불일치 대응] 제안 조치는 1순위 원인과 같은 장애의 조치여야 한다(증상 쪽 장애의 조치가 승인 카드에 뜨지 않게)
+    if real and (fix_id not in tenant.FIXES or tenant.FIXES[fix_id]["fault_id"] != real[0].fault_id):
+        fix_id = next((k for k, f in tenant.FIXES.items() if f["fault_id"] == real[0].fault_id), None)
     if real and fix_id in tenant.FIXES and intent == "sharepoint_issue":
         pending = {"fix_id": fix_id, "risk": tenant.FIXES[fix_id]["risk"], "action": tenant.FIXES[fix_id]["action"]}
         # [3차] propose_fix 호출 없이 계획 단계에서 조치를 고른 경우에도 조치 설명(승인 필요 포함)을 근거로 남긴다.
@@ -285,6 +327,8 @@ def plan_runbook(state: State) -> dict:
                         f"(대상 장애 {f['fault_id']}, 위험도 {f['risk']}). 이 조치는 관리자가 승인(approve)한 뒤에만 적용된다.",
                         "title": "fix catalog", "section": fix_id, "url": ""})
     dd = d.model_dump()
+    # 원인 후보가 하나도 없으면(범위 밖·정상 테넌트) 불일치 안내는 붙이지 않는다 — 7차에서 N4(가격 문의)에 잘못 붙었다
+    dd["mismatch"] = mismatch and any(c.fault_id != "none" for c in d.causes)
     return {"diagnosis": dd, "pending_action": pending, "contexts": ctx,
             "trace": [_t("plan_runbook", {"contexts": len(ctx)}, dd)]}
 
@@ -323,6 +367,9 @@ def compose_answer(state: State, waiting: bool = False) -> str:
     #      diagnosis 필드(구조화 출력)로만 보낸다. 1차에서는 이 메타데이터가 근거 없는 주장으로 채점돼 faithfulness가 낮았다.
     d = state.get("diagnosis") or {}
     parts = [d.get("summary_ko") or CHECK]
+    if d.get("mismatch"):
+        parts.append("문의하신 증상은 테넌트 점검 결과로 설명되지 않습니다. 아래 원인 후보는 점검에서 확인된 별도 문제이며, "
+                     f"증상의 원인인지는 {CHECK}합니다.")
     real = [c for c in d.get("causes", []) if c["fault_id"] != "none"]
     if not real and CHECK not in parts[0]:
         parts.append(f"검색된 문서로는 원인을 특정하지 못했습니다({CHECK}).")
