@@ -366,3 +366,4 @@
 | 2026-11-26 | 강사 피드백 반영: check_tenant_state에 코드 계산 checks 추가(D-15, Seed v1.5.0), SERVICE.md §3 도구 설명 갱신. 4차 평가 + positive·edge 반복으로 흔들림 측정 |
 | 2026-11-26 | 4차 평가 18/18, faithfulness 0.893, 반복 실행 1순위 11/11 동일 → 강사 피드백 반영 효과 확인 |
 | 2026-11-26 | 폴더·저장소 이름(`mini-pjt_{본인이름}`, 현재 haha15)은 Day 10 제출 때 최종 결정(사용자 결정) |
+| 2026-11-26 | 남은 시간 작업(1·4번): AC-8 clean clone 통과(인덱스 미리 준비로 첫 요청 시간 초과 수정), LLM-as-Judge 추가(AC-6), answer_relevancy 개선 실험은 faithfulness 하락으로 미채택, 강사 힌트 변형 20개 점검 14→20/20(findings 추가), 5차 18/18 |

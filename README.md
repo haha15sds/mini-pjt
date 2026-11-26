@@ -76,19 +76,20 @@ copy .env.example .env
 .venv\Scripts\python -X utf8 evaluation\run_eval.py --round 2 --ragas-model haiku
 ```
 
-- 첫 실행 때 Chroma 인덱스(`chroma_db/`)를 만든다(Bedrock 임베딩 호출).
+- 첫 실행 때 Chroma 인덱스(`chroma_db/`)를 만든다(Bedrock 임베딩 호출). API 서버·Streamlit·평가 실행기는 시작할 때 인덱스를 먼저 준비하므로, 깨끗한 clone에서는 서버가 뜨기까지 1분 남짓 걸린다(점검: 서버 준비 77초, 첫 요청 19초).
+- LLM-as-Judge: `.venv\Scripts\python -X utf8 evaluation\llm_judge.py evaluation\round4_results.json` (judge 모델 Claude Sonnet 4.5 고정)
 - 모델: 에이전트 Claude Sonnet 4.5, 분석 Claude Haiku 4.5 (Bedrock `us-east-1`), temperature 0.
 
 ## RAGAS 평가 결과
 
 positive·edge 11건, 채점 모델 Claude Haiku 4.5 (1차는 저장된 답변을 같은 모델로 다시 채점해 비교)
 
-| 지표 | 1차 | 2차 | 3차 | 4차 (최종) |
-|---|---|---|---|---|
-| faithfulness | 0.241 | 0.734 | 0.853 | **0.893** |
-| answer_relevancy | 0.447 | 0.388 | 0.338 | 0.312 |
-| context_precision (with reference) | 0.600 | 0.503 | 0.524 | 0.508 |
-| context_recall | 0.667 | 0.909 | 0.909 | 0.939 |
+| 지표 | 1차 | 2차 | 3차 | 4차 | 5차 (최종) |
+|---|---|---|---|---|---|
+| faithfulness | 0.241 | 0.734 | 0.853 | 0.893 | **0.886** |
+| answer_relevancy | 0.447 | 0.388 | 0.338 | 0.312 | 0.272 |
+| context_precision (with reference) | 0.600 | 0.503 | 0.524 | 0.508 | 0.512 |
+| context_recall | 0.667 | 0.909 | 0.909 | 0.939 | 0.939 |
 
 - 1차 원본 보고서(Sonnet 채점): [evaluation/round1_report.md](evaluation/round1_report.md) — faithfulness 0.111
 - reference는 정답 장애 이름과 공식 문서 근거 요약으로 만들었다.
@@ -100,7 +101,11 @@ positive·edge 11건, 채점 모델 Claude Haiku 4.5 (1차는 저장된 답변�
 - 2차 (Day 10 개선 후): **18 / 18 통과** (positive 7/7, negative 4/4, edge 4/4, guardrail 3/3) — [evaluation/round2_report.md](evaluation/round2_report.md)
 - 3차 (faithfulness 개선): **18 / 18 통과**, faithfulness 0.734 → 0.853 — [evaluation/round3_report.md](evaluation/round3_report.md)
 - 4차 (강사 피드백 반영: 값 비교를 코드로): **18 / 18 통과**, faithfulness 0.893, positive·edge 반복 실행에서 1순위 원인 11/11 동일 — [evaluation/round4_report.md](evaluation/round4_report.md)
+- 5차 (강사 힌트 집중 점검 반영: 코드가 '문제/문제 아님'까지 판정): **18 / 18 통과**, faithfulness 0.886 — [evaluation/round5_report.md](evaluation/round5_report.md)
+- 강사 힌트 집중 점검(값 비교 원인 변형 20개, 같은 모호한 문의): checks 없음 14/20 → 비교값만 14/20 → **문제 판정까지 20/20** — [evaluation/stress_hint_report.md](evaluation/stress_hint_report.md)
 - 개선폭: 통과 **+4건**(1차→2차), faithfulness **0.241 → 0.893** / 주요 개선 사항: 평가기 판정 오류 수정, 마스킹 토큰 재탐지 버그 수정, F3·F4 구분 규칙, 원인별 근거 재검색, 테넌트 상태를 근거로 포함, 답변과 메타데이터 분리
+
+LLM-as-Judge (positive·edge 11건, judge Claude Sonnet 4.5, 1~5점): 정확성 4.82 · 근거성 5.00 · 실행 가능성 4.82 · 안전성 5.00 (4차). judge는 답변 문장만 보고 장애 번호 표기 오류는 잡지 못해, 통과 여부는 규칙 판정으로 한다 — [round4_report.md](evaluation/round4_report.md) §6
 
 평가 세트: [evaluation/test_queries.csv](evaluation/test_queries.csv) (positive 7 · negative 4 · edge 4 · guardrail 3, 이 중 5건은 원인 이름만 본 별도 AI가 작성한 "AI 작성 준블라인드" 케이스로 튜닝 전에 고정)
 

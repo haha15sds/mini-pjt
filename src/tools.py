@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import json
+import os
 
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
@@ -51,6 +52,8 @@ def check_tenant_state(config: RunnableConfig) -> str:
     결과의 checks는 코드로 계산한 비교 결과(권장 구성 대비 차이, 그룹 수 한도, 식별자 대소문자 등)이므로 값 비교는 checks를 우선 근거로 쓴다."""
     state = tenant.get_state(_thread_id(config))
     # [추가 구현] 값 비교는 코드가 하고 결과(checks)를 함께 돌려준다 (강사 피드백, D-15). 장애 ID는 넣지 않는다.
+    if os.getenv("DISABLE_CHECKS") == "1":   # 비교 실험용: checks 없이 원본만 (강사 힌트 효과 측정)
+        return json.dumps(state, ensure_ascii=False, indent=1)
     return json.dumps({"checks": tenant.compute_checks(state), "state": state}, ensure_ascii=False, indent=1)
 
 

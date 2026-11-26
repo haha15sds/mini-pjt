@@ -151,7 +151,7 @@ GROUP_CLAIM_LIMIT = {"OIDC": 200, "SAML": 150}   # Entra ID 토큰 그룹 클레
 
 def compute_checks(state: dict) -> dict:
     ref = BASELINE
-    checks: dict = {"reference": "권장 구성(data/tenant_baseline.json)과 비교한 결과"}
+    checks: dict = {"reference": "권장 구성(data/tenant_baseline.json)과 비교한 결과. 원인 판단은 findings만 근거로 한다"}
 
     changed = [{"path": c["path"], "reference": c["before"], "current": c["after"]}
                for c in diff(ref, state) if not c["path"].startswith("recent_errors")]
@@ -192,4 +192,32 @@ def compute_checks(state: dict) -> dict:
     checks["entra_app_check"] = {"admin_consent": app.get("admin_consent"),
                                  "write_actions_enabled": app.get("write_actions_enabled"),
                                  "write_scopes_present": bool(app.get("write_scopes"))}
-    return checks
+
+    # [추가 구현] findings: 차이 중 '실제로 문제인 것'만 코드 규칙으로 판정한 문장 (장애 ID·이름 없음).
+    # 강사 힌트 점검(변형 20개)에서 권장 구성과 다르기만 해도 원인으로 삼는 오진(대조군 1/5)이 나와 추가했다.
+    f, ok = [], []
+    if app.get("admin_consent") is False:
+        f.append("Entra 앱에 테넌트 전체 관리자 동의가 없다(admin_consent=false).")
+    if app.get("write_actions_enabled") and not app.get("write_scopes"):
+        f.append("쓰기 동작(actions)이 켜져 있는데 쓰기 권한(scope)이 없다.")
+    if checks["subject_mapping_check"]["uses_object_id"] or not checks["subject_mapping_check"]["email_based"]:
+        f.append(f"google.subject 매핑이 이메일 기반이 아니다({subj}).")
+    for i in ids:
+        if i["email_upn_subject"] != "일치":
+            f.append(f"{i['user_id']}의 email·upn·subject_seen이 서로 다르다({i['email_upn_subject']}).")
+        elif i["email_changed_from_reference"]:
+            f.append(f"{i['user_id']}의 이메일(식별자 값)이 이전 기록과 달라졌다 — 식별자가 바뀌면 새 사용자로 처리된다.")
+        elif i["has_uppercase"]:
+            f.append(f"{i['user_id']}의 식별자에 대문자가 있다 — 식별자는 대소문자를 구분한다.")
+    if over and filt == "groups_assigned_to_application":
+        ok.append(f"{', '.join(o['user_id'] for o in over)}의 그룹 수는 {limit}개를 넘지만, 그룹 클레임을 '앱에 할당된 그룹'으로 제한해 토큰 한도 문제는 아니다.")
+    elif over:
+        f.append(f"{', '.join(o['user_id'] for o in over)}의 그룹 수가 {proto} 토큰 한도 {limit}개를 넘는다(그룹 클레임이 빠질 수 있음).")
+    else:
+        ok.append(f"그룹 수가 {proto} 토큰 한도 {limit}개를 넘는 사용자는 없다(최대 {max((u.get('group_count', 0) for u in state.get('users', [])), default=0)}개) — 그룹 클레임 한도 문제는 아니다.")
+    if checks["sites_check"]["sites_without_fullcontrol"]:
+        f.append(f"Sites.Selected 대상 사이트 중 fullcontrol이 없는 곳: {', '.join(checks['sites_check']['sites_without_fullcontrol'])}.")
+    checks["findings"] = f or ["코드 점검에서 문제로 판정된 설정이 없다."]
+    checks["not_a_problem"] = ok
+    order = ["findings", "not_a_problem"] + [k for k in checks if k not in ("findings", "not_a_problem")]
+    return {k: checks[k] for k in order}

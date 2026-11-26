@@ -290,7 +290,7 @@ with tab_eval:
     st.subheader("인-아웃 세트 평가 (18건)")
     ev = ROOT / "evaluation"
     rounds = {}
-    for name, path in [("1차", ev / "round1_results.json"), ("2차", ev / "round2_results.json"), ("3차", ev / "round3_results.json"), ("4차", ev / "round4_results.json")]:
+    for name, path in [("1차", ev / "round1_results.json"), ("2차", ev / "round2_results.json"), ("3차", ev / "round3_results.json"), ("4차", ev / "round4_results.json"), ("5차", ev / "round5_results.json")]:
         if path.exists():
             rounds[name] = json.loads(path.read_text(encoding="utf-8"))
     if not rounds:
@@ -310,7 +310,7 @@ with tab_eval:
         rag = []
         resc = ev / "round1_results_rescored.json"
         src = {"1차": json.loads(resc.read_text(encoding="utf-8"))["results"] if resc.exists() else rounds.get("1차", [])}
-        for nm in ("2차", "3차", "4차"):
+        for nm in ("2차", "3차", "4차", "5차"):
             if nm in rounds:
                 src[nm] = rounds[nm]
         for name, res in src.items():

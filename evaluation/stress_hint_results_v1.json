@@ -1,0 +1,408 @@
+{
+ "checks_on": [
+  {
+   "id": "H01",
+   "title": "u03 이메일·식별자 대문자 시작",
+   "expected": [
+    "F4"
+   ],
+   "top": "F4",
+   "hit": true,
+   "sec": 24.7
+  },
+  {
+   "id": "H02",
+   "title": "u01 이메일·식별자 대문자 시작",
+   "expected": [
+    "F4"
+   ],
+   "top": "F4",
+   "hit": true,
+   "sec": 22.7
+  },
+  {
+   "id": "H03",
+   "title": "u02 식별자만 대문자(이메일은 소문자)",
+   "expected": [
+    "F4"
+   ],
+   "top": "F4",
+   "hit": true,
+   "sec": 22.5
+  },
+  {
+   "id": "H04",
+   "title": "u01 이메일 주소 변경(전 필드)",
+   "expected": [
+    "F4"
+   ],
+   "top": "none",
+   "hit": false,
+   "sec": 16.2
+  },
+  {
+   "id": "H05",
+   "title": "u02 이메일 주소 변경(전 필드)",
+   "expected": [
+    "F4"
+   ],
+   "top": "F4",
+   "hit": true,
+   "sec": 21.4
+  },
+  {
+   "id": "H06",
+   "title": "u01 식별자 전부 대문자",
+   "expected": [
+    "F4"
+   ],
+   "top": "F4",
+   "hit": true,
+   "sec": 22.9
+  },
+  {
+   "id": "H07",
+   "title": "OIDC u02 그룹 201개(한도 200 초과)",
+   "expected": [
+    "F5"
+   ],
+   "top": "F5",
+   "hit": true,
+   "sec": 18.8
+  },
+  {
+   "id": "H08",
+   "title": "OIDC u02 그룹 230개",
+   "expected": [
+    "F5"
+   ],
+   "top": "F5",
+   "hit": true,
+   "sec": 18.1
+  },
+  {
+   "id": "H09",
+   "title": "OIDC u01 그룹 450개",
+   "expected": [
+    "F5"
+   ],
+   "top": "F5",
+   "hit": true,
+   "sec": 21.1
+  },
+  {
+   "id": "H10",
+   "title": "OIDC u03 210개·u01 205개",
+   "expected": [
+    "F5"
+   ],
+   "top": "F5",
+   "hit": true,
+   "sec": 19.5
+  },
+  {
+   "id": "H11",
+   "title": "SAML u02 그룹 151개(한도 150 초과)",
+   "expected": [
+    "F5"
+   ],
+   "top": "F5",
+   "hit": true,
+   "sec": 20.2
+  },
+  {
+   "id": "H12",
+   "title": "SAML u02 그룹 180개",
+   "expected": [
+    "F5"
+   ],
+   "top": "F5",
+   "hit": true,
+   "sec": 21.7
+  },
+  {
+   "id": "H13",
+   "title": "대조: OIDC u02 그룹 199개(한도 안)",
+   "expected": [
+    "none"
+   ],
+   "top": "F5",
+   "hit": false,
+   "sec": 25.7
+  },
+  {
+   "id": "H14",
+   "title": "대조: SAML u02 그룹 149개(한도 안)",
+   "expected": [
+    "none"
+   ],
+   "top": "F5",
+   "hit": false,
+   "sec": 21.8
+  },
+  {
+   "id": "H15",
+   "title": "대조: u02 230개지만 '앱에 할당된 그룹'만 보내도록 제한됨",
+   "expected": [
+    "none"
+   ],
+   "top": "F5",
+   "hit": false,
+   "sec": 23.1
+  },
+  {
+   "id": "H16",
+   "title": "대조: 정상 테넌트",
+   "expected": [
+    "none"
+   ],
+   "top": "none",
+   "hit": true,
+   "sec": 17.2
+  },
+  {
+   "id": "H17",
+   "title": "대조: OIDC u02 그룹 정확히 200개(초과 아님)",
+   "expected": [
+    "none"
+   ],
+   "top": "F5",
+   "hit": false,
+   "sec": 21.7
+  },
+  {
+   "id": "H18",
+   "title": "복합: u03 대소문자 + u02 230개",
+   "expected": [
+    "F4",
+    "F5"
+   ],
+   "top": "F5",
+   "hit": true,
+   "sec": 24.5
+  },
+  {
+   "id": "H19",
+   "title": "u03 이메일 주소 변경(전 필드)",
+   "expected": [
+    "F4"
+   ],
+   "top": "none",
+   "hit": false,
+   "sec": 18.2
+  },
+  {
+   "id": "H20",
+   "title": "SAML u03 그룹 300개",
+   "expected": [
+    "F5"
+   ],
+   "top": "F5",
+   "hit": true,
+   "sec": 21.7
+  }
+ ],
+ "checks_off": [
+  {
+   "id": "H01",
+   "title": "u03 이메일·식별자 대문자 시작",
+   "expected": [
+    "F4"
+   ],
+   "top": "F4",
+   "hit": true,
+   "sec": 22.3
+  },
+  {
+   "id": "H02",
+   "title": "u01 이메일·식별자 대문자 시작",
+   "expected": [
+    "F4"
+   ],
+   "top": "F4",
+   "hit": true,
+   "sec": 21.9
+  },
+  {
+   "id": "H03",
+   "title": "u02 식별자만 대문자(이메일은 소문자)",
+   "expected": [
+    "F4"
+   ],
+   "top": "F4",
+   "hit": true,
+   "sec": 19.6
+  },
+  {
+   "id": "H04",
+   "title": "u01 이메일 주소 변경(전 필드)",
+   "expected": [
+    "F4"
+   ],
+   "top": "none",
+   "hit": false,
+   "sec": 30.8
+  },
+  {
+   "id": "H05",
+   "title": "u02 이메일 주소 변경(전 필드)",
+   "expected": [
+    "F4"
+   ],
+   "top": "none",
+   "hit": false,
+   "sec": 27.1
+  },
+  {
+   "id": "H06",
+   "title": "u01 식별자 전부 대문자",
+   "expected": [
+    "F4"
+   ],
+   "top": "F4",
+   "hit": true,
+   "sec": 22.8
+  },
+  {
+   "id": "H07",
+   "title": "OIDC u02 그룹 201개(한도 200 초과)",
+   "expected": [
+    "F5"
+   ],
+   "top": "F5",
+   "hit": true,
+   "sec": 27.6
+  },
+  {
+   "id": "H08",
+   "title": "OIDC u02 그룹 230개",
+   "expected": [
+    "F5"
+   ],
+   "top": "F5",
+   "hit": true,
+   "sec": 23.2
+  },
+  {
+   "id": "H09",
+   "title": "OIDC u01 그룹 450개",
+   "expected": [
+    "F5"
+   ],
+   "top": "F5",
+   "hit": true,
+   "sec": 22.8
+  },
+  {
+   "id": "H10",
+   "title": "OIDC u03 210개·u01 205개",
+   "expected": [
+    "F5"
+   ],
+   "top": "F5",
+   "hit": true,
+   "sec": 24.0
+  },
+  {
+   "id": "H11",
+   "title": "SAML u02 그룹 151개(한도 150 초과)",
+   "expected": [
+    "F5"
+   ],
+   "top": "F5",
+   "hit": true,
+   "sec": 23.8
+  },
+  {
+   "id": "H12",
+   "title": "SAML u02 그룹 180개",
+   "expected": [
+    "F5"
+   ],
+   "top": "F5",
+   "hit": true,
+   "sec": 38.7
+  },
+  {
+   "id": "H13",
+   "title": "대조: OIDC u02 그룹 199개(한도 안)",
+   "expected": [
+    "none"
+   ],
+   "top": "F5",
+   "hit": false,
+   "sec": 31.0
+  },
+  {
+   "id": "H14",
+   "title": "대조: SAML u02 그룹 149개(한도 안)",
+   "expected": [
+    "none"
+   ],
+   "top": "none",
+   "hit": true,
+   "sec": 33.3
+  },
+  {
+   "id": "H15",
+   "title": "대조: u02 230개지만 '앱에 할당된 그룹'만 보내도록 제한됨",
+   "expected": [
+    "none"
+   ],
+   "top": "F5",
+   "hit": false,
+   "sec": 26.3
+  },
+  {
+   "id": "H16",
+   "title": "대조: 정상 테넌트",
+   "expected": [
+    "none"
+   ],
+   "top": "none",
+   "hit": true,
+   "sec": 43.5
+  },
+  {
+   "id": "H17",
+   "title": "대조: OIDC u02 그룹 정확히 200개(초과 아님)",
+   "expected": [
+    "none"
+   ],
+   "top": "F5",
+   "hit": false,
+   "sec": 32.3
+  },
+  {
+   "id": "H18",
+   "title": "복합: u03 대소문자 + u02 230개",
+   "expected": [
+    "F4",
+    "F5"
+   ],
+   "top": "F5",
+   "hit": true,
+   "sec": 38.9
+  },
+  {
+   "id": "H19",
+   "title": "u03 이메일 주소 변경(전 필드)",
+   "expected": [
+    "F4"
+   ],
+   "top": "none",
+   "hit": false,
+   "sec": 38.2
+  },
+  {
+   "id": "H20",
+   "title": "SAML u03 그룹 300개",
+   "expected": [
+    "F5"
+   ],
+   "top": "F5",
+   "hit": true,
+   "sec": 37.4
+  }
+ ]
+}
