@@ -46,9 +46,10 @@ def judge_one(question: str, answer: str, reference: str, decision: str | None =
 
 
 def _decisions() -> dict:
-    import csv
+    sys.path.insert(0, str(ROOT))
+    from src.evaluation.cases import load_cases
     out = {}
-    for r in csv.DictReader(open(ROOT / "evaluation" / "test_queries.csv", encoding="utf-8-sig")):
+    for r in load_cases():
         for part in r["note"].split(";"):
             if part.strip().startswith("decision="):
                 out[r["id"]] = part.split("=", 1)[1].strip()

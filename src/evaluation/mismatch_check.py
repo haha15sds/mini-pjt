@@ -13,7 +13,6 @@
 """
 from __future__ import annotations
 
-import csv
 import json
 import sys
 import time
@@ -29,6 +28,7 @@ load_dotenv(ROOT / ".env")
 from src.workflow import entry as agent  # noqa: E402
 from src import tenant  # noqa: E402
 from src.knowledge.retriever import warm_up  # noqa: E402
+from src.evaluation.cases import load_cases  # noqa: E402
 
 # (id, 문의 케이스, 문의 증상의 장애, 바꿔 낀 시나리오, 그 시나리오의 실제 장애)
 CASES = [
@@ -70,7 +70,7 @@ def judge(res: dict, symptom_fault: str, tenant_fault: str) -> dict:
 
 
 def main() -> None:
-    rows = {r["id"]: r for r in csv.DictReader(open(ROOT / "evaluation" / "test_queries.csv", encoding="utf-8-sig"))}
+    rows = {r["id"]: r for r in load_cases()}
     agent.reset_checkpoints()
     print("인덱스:", warm_up(), flush=True)
     out = []

@@ -8,7 +8,6 @@
 """
 from __future__ import annotations
 
-import csv
 import html
 import json
 import re
@@ -125,7 +124,8 @@ def esc(s) -> str:
 
 
 # ---------------- 사이드바: 시연 도구 ----------------
-rows = list(csv.DictReader(open(ROOT / "evaluation" / "test_queries.csv", encoding="utf-8-sig")))
+from src.evaluation.cases import load_cases  # noqa: E402
+rows = load_cases()   # id = 케이스 이름(P1…), 규약 3-4의 번호는 num
 with st.sidebar:
     st.markdown("### 시연 도구")
     ss.demo = st.toggle("샘플 응답으로 보기 (Bedrock 호출 없음)", value=ss.demo)

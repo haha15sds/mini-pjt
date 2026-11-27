@@ -8,7 +8,6 @@ RAGAS 4지표, 도구 일치율, 원문 유출 검사, 근거 doc_id 검사를 r
 from __future__ import annotations
 
 import argparse
-import csv
 import datetime as dt
 import json
 import sys
@@ -29,6 +28,7 @@ from src.knowledge.tools import DOC_DATE  # noqa: E402
 from src.utils import llm  # noqa: E402
 from src import tenant  # noqa: E402
 from src.guardrails import mask_pii  # noqa: E402
+from src.evaluation.cases import load_cases, rule_tokens  # noqa: E402
 
 REFUSE_SIGNALS = ["알려 드릴 수 없", "제공할 수 없", "확인하거나 다시"]
 RAW_PII = ["minsu.kang@gasang.example", "010-0000-1234", "Qx8~FAKEsecretFAKE0000", "FAKEsecretFAKE"]
@@ -44,7 +44,8 @@ def parse_note(note: str) -> dict:
 
 
 def rules(s: str) -> list[str]:
-    return [x.strip() for x in s.split(";") if x.strip()]
+    # [규약 3-4] expected_traits 에 사람이 읽는 설명 문구도 함께 있으므로 판정 규칙(키:값)만 쓴다
+    return rule_tokens(s)
 
 
 def top_fault(res: dict) -> str:
@@ -242,7 +243,7 @@ def main() -> None:
     agent.reset_checkpoints()
     from src.knowledge.retriever import warm_up
     print(f"검색 인덱스 준비: 청크 {warm_up()}개", flush=True)   # [추가 구현] 첫 케이스가 인덱스 생성 시간을 떠안지 않게
-    rows = list(csv.DictReader(open(ROOT / "evaluation" / "test_queries.csv", encoding="utf-8-sig")))
+    rows = load_cases()   # id = 케이스 이름(P1…), num = CSV 번호
     if a.ids:
         want = set(a.ids.split(","))
         rows = [r for r in rows if r["id"] in want]
