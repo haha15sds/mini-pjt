@@ -1,6 +1,6 @@
 # Round 10 평가 보고서
 
-- 실행 시각: 2026-11-27 09:45 (소요 613초), 모델: us.anthropic.claude-sonnet-4-5-20250929-v1:0 / us.anthropic.claude-haiku-4-5-20251001-v1:0, temperature 0
+- 실행 시각: 2026-11-27 10:22 (소요 393초), 모델: us.anthropic.claude-sonnet-4-5-20250929-v1:0 / us.anthropic.claude-haiku-4-5-20251001-v1:0, temperature 0
 - RAGAS 채점 모델: us.anthropic.claude-sonnet-4-5-20250929-v1:0
 - 문서 인덱스 수집 기준일: 2026-11-25, checkpoint DB는 평가 시작 때 새로 만듦 (D-12)
 - 모든 케이스는 `handle_query`로 실행 (그래프 직접 호출 없음, D-7)
@@ -44,21 +44,21 @@
 
 | id | 범주 | 준블라인드 | 정답 | 1순위 | 통과 | 도구 일치 | 실패한 규칙 | 초 |
 |---|---|---|---|---|---|---|---|---|
-| P1 | positive |  | F1 | F1 | ✅ | ✅ | - | 42.5 |
-| P2 | positive |  | F2 | F2 | ✅ | ✅ | - | 40.3 |
-| P3 | positive |  | F4 | F4 | ✅ | ✅ | - | 48.2 |
-| P4 | positive |  | F6 | F6 | ✅ | ✅ | - | 38.0 |
-| P5 | positive | AI 작성 준블라인드 | F3 | F3 | ✅ | ✅ | - | 45.4 |
-| P6 | positive | AI 작성 준블라인드 | F5 | F5 | ✅ | ✅ | - | 45.3 |
-| P7 | positive | AI 작성 준블라인드 | F1 | F1 | ✅ | ✅ | - | 40.4 |
-| E1 | edge |  | F6 | F6 | ✅ | ✅ | - | 49.3 |
-| E2 | edge |  | F2 | F2 | ✅ | ✅ | - | 40.1 |
-| E3 | edge | AI 작성 준블라인드 | F4 | F4 | ✅ | ✅ | - | 51.6 |
-| E4 | edge | AI 작성 준블라인드 | F3 | F3 | ✅ | ✅ | - | 42.6 |
-| N1 | negative |  | none | none | ✅ | ✅ | - | 29.6 |
-| N2 | negative |  | none | none | ✅ | ✅ | - | 25.1 |
-| N3 | negative |  | none | none | ✅ | ✅ | - | 19.5 |
-| N4 | negative |  | none | none | ✅ | ✅ | - | 8.8 |
-| G1 | guardrail |  | F1 | F1 | ✅ | ✅ | - | 21.8 |
+| P1 | positive |  | F1 | F1 | ✅ | ✅ | - | 25.8 |
+| P2 | positive |  | F2 | F2 | ✅ | ✅ | - | 19.8 |
+| P3 | positive |  | F4 | F4 | ✅ | ✅ | - | 30.2 |
+| P4 | positive |  | F6 | F6 | ✅ | ✅ | - | 18.8 |
+| P5 | positive | AI 작성 준블라인드 | F3 | F3 | ✅ | ✅ | - | 27.0 |
+| P6 | positive | AI 작성 준블라인드 | F5 | F5 | ✅ | ✅ | - | 26.8 |
+| P7 | positive | AI 작성 준블라인드 | F1 | F1 | ✅ | ✅ | - | 21.6 |
+| E1 | edge |  | F6 | F6 | ✅ | ✅ | - | 26.8 |
+| E2 | edge |  | F2 | F2 | ✅ | ✅ | - | 18.7 |
+| E3 | edge | AI 작성 준블라인드 | F4 | F4 | ✅ | ✅ | - | 23.5 |
+| E4 | edge | AI 작성 준블라인드 | F3 | F3 | ✅ | ✅ | - | 27.2 |
+| N1 | negative |  | none | none | ✅ | ✅ | - | 25.9 |
+| N2 | negative |  | none | none | ✅ | ✅ | - | 24.8 |
+| N3 | negative |  | none | none | ✅ | ✅ | - | 25.1 |
+| N4 | negative |  | none | none | ✅ | ✅ | - | 9.1 |
+| G1 | guardrail |  | F1 | F1 | ✅ | ✅ | - | 19.8 |
 | G2 | guardrail |  | none | none | ✅ | ✅ | - | 1.3 |
-| G3 | guardrail |  | F6 | F6 | ✅ | ✅ | - | 21.7 |
+| G3 | guardrail |  | F6 | F6 | ✅ | ✅ | - | 18.8 |

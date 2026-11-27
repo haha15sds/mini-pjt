@@ -749,3 +749,11 @@
 🔧 충족: API 규약(POST /query·3필드), SERVICE 5절·규칙 5건·성공 기준, CSV 7컬럼·18건·비율(39/22/22/17%), README 템플릿 절 전부, 1·2차 보고서와 개선폭, 패턴 10개 적용(1·2·3·4·6·7·8·10·11·12), 필수 1·3·12.
 🔧 미흡: ① 3-1 예시 파일명 src/agent.py·tools.py·retriever.py가 리팩토링으로 사라짐 ② Dockerfile 없음(3-1 선택이지만 체크리스트 필수 괄호에 Docker), run.sh 없음 ③ CSV id가 P1 형식(규약은 1부터 번호), expected_traits가 기계 판정 코드(fault:F1 등) ④ README 회고 2차까지·개선폭 문장 옛 수치 ⑤ 패턴 11: LangSmith 켜져 있으나 프로젝트 이름이 sds-ax-day3, 근거 캡처 없음 ⑥ requirements 5개 버전 미고정 ⑦ 클린 환경 재현 미검증(리팩토링 후).
 🔧 보완 순서 제안(합의 대기).
+
+### 121. 요구사항 보완 1~7 실행
+
+👤 "실행해줘."
+🔧 ① src/agent.py·tools.py·retriever.py 규약 진입 파일(도메인 모듈 재노출, 로직 없음), CLAUDE.md·README 반영 ② requirements 5개 버전 고정 ③ Dockerfile·.dockerignore·run.sh·GitHub Actions(docker.yml) 추가. 첫 빌드 실패: 워크플로 YAML에 개행이 들어가 깨짐(수정), 이어서 scikit-network(ragas 의존성)가 리눅스 3.14 wheel이 없어 소스 빌드 중 g++ 없음 → Dockerfile에 g++ 설치. 로그는 로그인 필요라 실패 줄을 annotation으로 남기게 해 원인 확인.
+🔧 ④ test_queries.csv id 1~18 번호, 케이스 이름은 note `case=`, expected_traits에 사람이 읽는 설명 추가(판정 규칙·입력·금지·기대 도구는 그대로 확인). src/evaluation/cases.py 공통 로더 ⑤ README: RAGAS 최종 요약 4지표, 개선폭 +4건·최종 지표, 회고 3~10차 실패·채택·한계, Docker 실행 ⑥ 로컬 .env LANGSMITH_PROJECT를 .env.example과 같은 mini-pjt-ge-setting-agent로(키는 손대지 않음).
+🔧 ⑦ 18건 회귀 18/18(평가셋 변경 후). 클린 clone(GitHub → 새 venv 94초 → 서버 준비 88초 → 문의 22초 F6 → 승인 적용 → 화면 예외 0) 통과, README에 기록.
+🔧 GitHub Actions Docker 빌드 성공(run 45922618880): 이미지 빌드·키 없이 import/가드레일/진입점·Streamlit 기동 모두 success. README에 링크.

@@ -86,6 +86,8 @@ docker run --rm -p 8501:8501 --env-file .env mini-pjt \
 ./run.sh setup && ./run.sh api                                             # Docker 없이
 ```
 
+- **클린 환경 재현 검증 (2026-11-27, 리팩토링 후)**: GitHub에서 새 폴더로 clone → 새 venv에 `requirements.txt` 설치(94초) → `.env`만 복사 → API 서버 준비 88초(인덱스 새로 생성) → 실제 문의 1건 22초(F6 진단, 승인 대기) → 승인 후 "관리자 승인에 따라 조치를 적용했습니다" → Streamlit 화면 예외 0건. 같은 코드로 인-아웃 세트 18/18([evaluation/refactor_check/](evaluation/refactor_check/)).
+- **Docker 재빌드**: push마다 GitHub Actions가 이미지를 새로 빌드하고, 키 없이 import·가드레일·진입점·Streamlit 기동을 점검한다([.github/workflows/docker.yml](.github/workflows/docker.yml), 결과는 저장소 Actions 탭). 첫 빌드는 `scikit-network`(ragas 의존성)를 소스에서 빌드할 C++ 컴파일러가 slim 이미지에 없어 실패했고, Dockerfile에 `g++`를 넣어 고쳤다. 고친 뒤 빌드·점검 3단계 모두 성공([실행 기록](https://github.com/haha15sds/mini-pjt/actions/runs/45922618880)).
 - 첫 실행 때 Chroma 인덱스(`chroma_db/`)를 만든다(Bedrock 임베딩 호출). API 서버·Streamlit·평가 실행기는 시작할 때 인덱스를 먼저 준비하므로, 깨끗한 clone에서는 서버가 뜨기까지 1분 남짓 걸린다(점검: 서버 준비 77초, 첫 요청 19초).
 - LLM-as-Judge: `.venv\Scripts\python -X utf8 src\evaluation\llm_judge.py evaluation\round4_results.json` (judge 모델 Claude Sonnet 4.5 고정)
 - 모델: 에이전트 Claude Sonnet 4.5, 분석 Claude Haiku 4.5 (Bedrock `us-east-1`), temperature 0.
