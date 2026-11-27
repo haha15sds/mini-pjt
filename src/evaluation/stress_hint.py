@@ -91,7 +91,10 @@ def main() -> None:
     agent.reset_checkpoints()
     print("인덱스:", warm_up())
     on = run("checks 켬")
-    off = on if os.getenv("ONLY_ON") == "1" else run("checks 끔")
+    # [중간평가 반영] 전에는 ONLY_ON=1 이면 off = on 이라 '끔' 열에 켠 조건 점수가 그대로 찍혔다(차이 0이 효과 없음처럼 보임).
+    #  대조 실험을 생략하면 '끔' 열은 '-'로 두고, 손으로 정리한 3조건 보고서(stress_hint_report.md)를 덮어쓰지 않는다.
+    only_on = os.getenv("ONLY_ON") == "1"
+    off = None if only_on else run("checks 끔")
     (ROOT / "evaluation" / "stress_hint_results.json").write_text(
         json.dumps({"checks_on": on, "checks_off": off}, ensure_ascii=False, indent=1), encoding="utf-8")
     groups = {"F4 식별자(6+1)": [c[0] for c in CASES if c[3] == {"F4"}], "F5 그룹 한도(7)": [c[0] for c in CASES if c[3] == {"F5"}],
@@ -101,14 +104,18 @@ def main() -> None:
          "| 묶음 | checks 켬 | checks 끔 |", "|---|---|---|"]
     for g, ids in groups.items():
         a = sum(x["hit"] for x in on if x["id"] in ids)
-        b = sum(x["hit"] for x in off if x["id"] in ids)
-        L.append(f"| {g} | {a} / {len(ids)} | {b} / {len(ids)} |")
-    L.append(f"| **전체** | **{sum(x['hit'] for x in on)} / 20** | **{sum(x['hit'] for x in off)} / 20** |")
+        b = "-" if off is None else f"{sum(x['hit'] for x in off if x['id'] in ids)} / {len(ids)}"
+        L.append(f"| {g} | {a} / {len(ids)} | {b} |")
+    tot_off = "-" if off is None else f"{sum(x['hit'] for x in off)} / 20"
+    L.append(f"| **전체** | **{sum(x['hit'] for x in on)} / 20** | **{tot_off}** |")
     L += ["", "| id | 변형 | 정답 | checks 켬 | checks 끔 |", "|---|---|---|---|---|"]
-    for a, b in zip(on, off):
-        L.append(f"| {a['id']} | {a['title']} | {', '.join(a['expected'])} | {a['top']} {'✅' if a['hit'] else '❌'} | {b['top']} {'✅' if b['hit'] else '❌'} |")
-    (ROOT / "evaluation" / "stress_hint_report.md").write_text("\n".join(L) + "\n", encoding="utf-8")
-    print("done", sum(x["hit"] for x in on), sum(x["hit"] for x in off))
+    for i, a in enumerate(on):
+        b = "-" if off is None else f"{off[i]['top']} {'✅' if off[i]['hit'] else '❌'}"
+        L.append(f"| {a['id']} | {a['title']} | {', '.join(a['expected'])} | {a['top']} {'✅' if a['hit'] else '❌'} | {b} |")
+    # 저장된 stress_hint_report.md 는 세 조건(①②③)을 손으로 합친 문서라 덮어쓰지 않는다
+    name = "stress_hint_report_only_on.md" if only_on else "stress_hint_report_run.md"
+    (ROOT / "evaluation" / name).write_text("\n".join(L) + "\n", encoding="utf-8")
+    print("done", sum(x["hit"] for x in on), tot_off, "->", name)
 
 
 if __name__ == "__main__":

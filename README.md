@@ -88,26 +88,26 @@ docker run --rm -p 8501:8501 --env-file .env mini-pjt \
 
 - **클린 환경 재현 검증 (2026-11-27, 리팩토링 후)**: GitHub에서 새 폴더로 clone → 새 venv에 `requirements.txt` 설치(94초) → `.env`만 복사 → API 서버 준비 88초(인덱스 새로 생성) → 실제 문의 1건 22초(F6 진단, 승인 대기) → 승인 후 "관리자 승인에 따라 조치를 적용했습니다" → Streamlit 화면 예외 0건. 같은 코드로 인-아웃 세트 18/18([evaluation/refactor_check/](evaluation/refactor_check/)).
 - **Docker 재빌드**: push마다 GitHub Actions가 이미지를 새로 빌드하고, 키 없이 import·가드레일·진입점·Streamlit 기동을 점검한다([.github/workflows/docker.yml](.github/workflows/docker.yml), 결과는 저장소 Actions 탭). 첫 빌드는 `scikit-network`(ragas 의존성)를 소스에서 빌드할 C++ 컴파일러가 slim 이미지에 없어 실패했고, Dockerfile에 `g++`를 넣어 고쳤다. 고친 뒤 빌드·점검 3단계 모두 성공([실행 기록](https://github.com/haha15sds/mini-pjt/actions/runs/45922618880)).
-- 첫 실행 때 Chroma 인덱스(`chroma_db/`)를 만든다(Bedrock 임베딩 호출). API 서버·Streamlit·평가 실행기는 시작할 때 인덱스를 먼저 준비하므로, 깨끗한 clone에서는 서버가 뜨기까지 1분 남짓 걸린다(점검: 서버 준비 77초, 첫 요청 19초).
+- 첫 실행 때 Chroma 인덱스(`chroma_db/`)를 만든다(Bedrock 임베딩 호출). API 서버와 평가 실행기는 시작할 때, Streamlit 화면은 첫 실제 진단 직전에 인덱스를 준비하므로, 깨끗한 clone에서는 서버가 뜨기까지 1분 남짓 걸린다(점검: 서버 준비 77초, 첫 요청 19초).
 - LLM-as-Judge: `.venv\Scripts\python -X utf8 src\evaluation\llm_judge.py evaluation\round4_results.json` (judge 모델 Claude Sonnet 4.5 고정)
 - 모델: 에이전트 Claude Sonnet 4.5, 분석 Claude Haiku 4.5 (Bedrock `us-east-1`), temperature 0.
 
 ## RAGAS 평가 결과
 
-최종(10차, positive·edge 11건, 채점 모델 Claude Haiku 4.5):
+최종(11차, positive·edge 11건, 채점 모델 Claude Haiku 4.5):
 - context_recall: **0.94**
 - context_precision: **0.83**
-- faithfulness: **0.87** (필수 기준 0.8 이상)
-- answer_relevancy: 0.26 (근거 나열 위주 답변의 대가, 아래 회고)
+- faithfulness: **0.85** (필수 기준 0.8 이상)
+- answer_relevancy: 0.30 (근거 나열 위주 답변의 대가, 아래 회고)
 
 라운드별 (positive·edge 11건, 채점 모델 Claude Haiku 4.5, 1차는 저장된 답변을 같은 모델로 다시 채점해 비교)
 
-| 지표 | 1차 | 2차 | 3차 | 4차 | 5차 | 6차 | 7차 | 8차 | 9차 | 10차 (최종) |
-|---|---|---|---|---|---|---|---|---|---|---|
-| faithfulness | 0.241 | 0.734 | 0.853 | 0.893 | 0.886 | 0.892 | 0.836 | 0.861 | 0.931 | **0.866** |
-| answer_relevancy | 0.447 | 0.388 | 0.338 | 0.312 | 0.272 | 0.311 | 0.275 | 0.290 | 0.314 | 0.262 |
-| context_precision (with reference) | 0.600 | 0.503 | 0.524 | 0.508 | 0.512 | 0.512 | 0.512 | 0.512 | 0.512 | **0.834** |
-| context_recall | 0.667 | 0.909 | 0.909 | 0.939 | 0.939 | 0.939 | 0.939 | 0.939 | 0.909 | 0.939 |
+| 지표 | 1차 | 2차 | 3차 | 4차 | 5차 | 6차 | 7차 | 8차 | 9차 | 10차 | 11차 (최종) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| faithfulness | 0.241 | 0.734 | 0.853 | 0.893 | 0.886 | 0.892 | 0.836 | 0.861 | 0.931 | 0.866 | **0.851** |
+| answer_relevancy | 0.447 | 0.388 | 0.338 | 0.312 | 0.272 | 0.311 | 0.275 | 0.290 | 0.314 | 0.262 | 0.298 |
+| context_precision (with reference) | 0.600 | 0.503 | 0.524 | 0.508 | 0.512 | 0.512 | 0.512 | 0.512 | 0.512 | 0.834 | **0.829** |
+| context_recall | 0.667 | 0.909 | 0.909 | 0.939 | 0.939 | 0.939 | 0.939 | 0.939 | 0.909 | 0.939 | 0.939 |
 
 - 1차 원본 보고서(Sonnet 채점): [evaluation/round1_report.md](evaluation/round1_report.md) — faithfulness 0.111
 - reference는 정답 장애 이름과 공식 문서 근거 요약으로 만들었다.
@@ -125,14 +125,15 @@ docker run --rm -p 8501:8501 --env-file .env mini-pjt \
 - 8차 (N4 오표시 수정 후 18건 전체 재실행): **18 / 18 통과**, faithfulness 0.861 — [evaluation/round8_report.md](evaluation/round8_report.md)
 - 9차 (승인 후 안내 문구 "관리자 승인에 따라 조치를 적용했습니다"): **18 / 18 통과**, faithfulness 0.931 — [evaluation/round9_report.md](evaluation/round9_report.md)
 - 10차 (검색 순위 개선: 원인마다 근거 문서를 다시 찾아 앞에 둠): **18 / 18 통과**, context_precision 0.512 → **0.834**, faithfulness 0.866 — [evaluation/round10_report.md](evaluation/round10_report.md)
+- 11차 (강사 중간평가 반영: F4 조치 해소, 승인 후 복구 판정 강화, 검색 색인 지문·BM25 대체, 모델 호출 시간 상한, contexts 마스킹): **18 / 18 통과**, faithfulness 0.851, context_precision 0.829 — [evaluation/round11_report.md](evaluation/round11_report.md)
 - 반복 실행(같은 코드 3회씩, 중앙값): 개선 전 context_precision 0.512 → 개선 후 0.798(범위 0.768~0.810, 겹치지 않음), faithfulness 0.895 → 0.885(범위가 겹쳐 실행 편차 안), 6회 모두 18/18 — [evaluation/repeat_report.md](evaluation/repeat_report.md)
 - 불일치 점검(문의는 그대로, 시나리오만 다른 장애로 바꾼 8조합): 바람직한 답 0/8 → **7/8** — [evaluation/mismatch_report.md](evaluation/mismatch_report.md)
 - 강사 힌트 집중 점검(값 비교 원인 변형 20개, 같은 모호한 문의): checks 없음 14/20 → 비교값만 14/20 → **문제 판정까지 20/20** — [evaluation/stress_hint_report.md](evaluation/stress_hint_report.md)
-- **개선폭: +4건** (1차 14/18 → 2차 18/18, 이후 10차까지 18/18 유지). 지표는 1차 → 최종(10차) faithfulness 0.241 → 0.866, context_precision 0.600 → 0.834, context_recall 0.667 → 0.939
+- **개선폭: +4건** (1차 14/18 → 2차 18/18, 이후 10차까지 18/18 유지). 지표는 1차 → 최종(10차) faithfulness 0.241 → 0.851, context_precision 0.600 → 0.829, context_recall 0.667 → 0.939 (최종 11차)
   - 1차→2차 주요 개선: 평가기 판정 오류 수정, 마스킹 토큰 재탐지 버그 수정, F3·F4 구분 규칙, 원인별 근거 재검색, 테넌트 상태를 근거로 포함, 답변과 메타데이터 분리
   - 3차 이후: 값 비교를 코드로(강사 피드백), 문제 판정(findings), 불일치 대응, 승인 후 문구, 원인 중심 재검색 — 라운드별 내용은 위 목록
 
-LLM-as-Judge (positive·edge 11건, judge Claude Sonnet 4.5, 1~5점): 정확성 5.00 · 근거성 5.00 · 실행 가능성 5.00 · 안전성 5.00 (6차, 4차는 4.82 · 5.00 · 4.82 · 5.00, 8차는 4.82 · 5.00 · 4.82 · 4.64 — 안전 감점은 E2 한 건으로, 승인 후 응답의 "조치를 적용했습니다" 문구를 judge가 표현상 문제로 본 것. 같은 문구에 7차는 5점. 문구를 "관리자 승인에 따라 조치를 적용했습니다"로 바꾼 9차는 4.82 · 5.00 · 4.73 · 5.00, 감점은 P2 한 건. 10차는 5.00 · 5.00 · 4.82 · 5.00). judge는 답변 문장만 보고 장애 번호 표기 오류는 잡지 못해, 통과 여부는 규칙 판정으로 한다 — [round4_report.md](evaluation/round4_report.md) §6
+LLM-as-Judge (positive·edge 11건, judge Claude Sonnet 4.5, 1~5점): 정확성 5.00 · 근거성 5.00 · 실행 가능성 5.00 · 안전성 5.00 (6차, 4차는 4.82 · 5.00 · 4.82 · 5.00, 8차는 4.82 · 5.00 · 4.82 · 4.64 — 안전 감점은 E2 한 건으로, 승인 후 응답의 "조치를 적용했습니다" 문구를 judge가 표현상 문제로 본 것. 같은 문구에 7차는 5점. 문구를 "관리자 승인에 따라 조치를 적용했습니다"로 바꾼 9차는 4.82 · 5.00 · 4.73 · 5.00, 감점은 P2 한 건. 10차는 5.00 · 5.00 · 4.82 · 5.00, 최종 11차는 네 축 모두 5.00). judge는 답변 문장만 보고 장애 번호 표기 오류는 잡지 못해, 통과 여부는 규칙 판정으로 한다 — [round4_report.md](evaluation/round4_report.md) §6
 
 평가 세트: [evaluation/test_queries.csv](evaluation/test_queries.csv) (positive 7 · negative 4 · edge 4 · guardrail 3, 이 중 5건은 원인 이름만 본 별도 AI가 작성한 "AI 작성 준블라인드" 케이스로 튜닝 전에 고정)
 
@@ -181,7 +182,20 @@ LLM-as-Judge (positive·edge 11건, judge Claude Sonnet 4.5, 1~5점): 정확성 
 - 프로비저닝·온보딩 단계, SharePoint 외 커넥터로 장애 목록 확장. 문서용 MCP(Google Developer Knowledge, Microsoft Learn)로 문서 수집 자동화.
 - 증상과 원인이 맞는지는 아직 모델이 판단한다. 그럴듯하게 이어 붙일 수 있는 조합(불일치 점검 M01)은 놓친다.
 - answer_relevancy가 낮다(0.26). 진단 결과로 코드가 채우는 결론 한 줄을 답변 맨 앞에 붙이는 방법을 다음에 시험해 볼 수 있다.
-- 평가 세트 18건은 모두 우리가 만든 문의다. 처음 보는 문의로 일반화를 따로 재 보지 않았다.
+- 평가 세트 18건은 모두 우리가 만든 문의다. 처음 보는 문의로 일반화를 따로 재 보지 않았다. 일반 사례 7건 중 P1·P7은 같은 장애(F1)라 1순위 원인 7/7은 장애 6종에 대한 결과다.
+- 승인 요청을 보낸 사람이 관리자인지, 스레드의 주인인지 확인하지 않는다(단일 사용자 시연 범위). 여러 사용자가 쓰는 배포라면 인증·역할 확인이 먼저 필요하다.
+- 그래프 체크포인트는 SQLite에 남지만 가상 테넌트는 서버 메모리에만 있다. 질문과 승인 사이에 서버가 재시작되면 승인이 "존재하지 않는 thread_id"로 거절된다.
+- 에이전트가 도구를 하나도 부르지 않으면 검색·테넌트 조회 없이 진단한다(지시로만 막음). 이때 원인 후보의 코드 검증도 돌지 않는다.
+- 전화번호 마스킹은 국내 번호와 +82 형식만 잡는다. 오류에도 HTTP 상태 코드는 200이다(규약 3필드 우선).
+- LLM-as-Judge는 답변·문의·정답만 보고 테넌트 상태와 검색 문서 본문은 보지 않는다. 근거성 점수는 "답변의 값이 실제 관측값과 같다"는 뜻이 아니다.
+
+**강사 중간평가(9일차 스냅샷) 반영 (2026-11-27)**
+- F4 조치(`align_user_identifier`) 뒤에도 F4가 다시 잡히던 문제 → 조치가 이메일·UPN·subject를 소문자로 맞추고 이전 식별자 연결을 표시, 모든 시나리오에서 조치 후 장애가 사라지는 것을 코드로 확인.
+- 평가기의 "승인 후 복구" 판정이 장애 해소를 보지 않던 문제 → 코드 점검으로 기대 장애가 사라졌는지까지 판정. 실패 케이스가 있으면 종료 코드 1, 평가 전용 체크포인트 파일을 기본값으로, 체크포인트 파일이 없으면 "검사 대상 없음"으로 표시.
+- 검색 색인을 청크 수로만 검증하던 문제 → 문서 내용 지문으로 색인 이름을 정해 문서가 바뀌면 새로 만든다. 벡터 검색·색인 준비가 실패해도 BM25만으로 답하고 서버는 뜬다.
+- 시간 상한이 ReAct 루프에만 있던 문제 → 모든 모델 호출에 응답 대기 상한(45초).
+- 불일치 판정에서 오진도 '좋음'이 될 수 있던 문제 → '오진' 판정 추가 후 재판정(결과 같음). 힌트 점검의 대조 생략 모드에서 끔 열에 켬 값이 찍히던 문제 수정.
+- 잘못된 scenario_id가 오류 문구에 그대로 실리던 문제, 응답 contexts의 테넌트 정보가 가려지지 않던 문제 → 마스킹.
 
 ## 핵심 코드 위치
 

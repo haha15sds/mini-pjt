@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import os
 import sys
 import time
 import warnings
@@ -22,10 +23,13 @@ sys.path.insert(0, str(ROOT))   # src 패키지를 찾도록 저장소 루트를
 from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(ROOT / ".env")
+# [중간평가 반영] 평가는 시작할 때 체크포인트 파일을 지운다. 서비스(API·화면)가 쓰는 checkpoints.sqlite 를 지우지 않도록
+# 따로 지정하지 않으면 평가 전용 파일을 쓴다(진입점 모듈을 불러오기 전에 정해야 한다).
+os.environ.setdefault("CHECKPOINT_DB", str(ROOT / "eval_ckpt.sqlite"))
 
 from src.workflow import entry as agent  # noqa: E402
 from src.knowledge.tools import DOC_DATE  # noqa: E402
-from src.utils import llm  # noqa: E402
+from src.utils import llm as llm_cfg  # noqa: E402  (채점 함수의 지역 변수 llm 과 이름이 겹치지 않게)
 from src import tenant  # noqa: E402
 from src.guardrails import mask_pii  # noqa: E402
 from src.evaluation.cases import load_cases, rule_tokens  # noqa: E402
@@ -92,7 +96,10 @@ def run_case(row: dict) -> dict:
         elif k == "approval_required":
             ok = bool(first.get("approval_required")) == (v == "true")
         elif k == "state_fixed_after_approve":
-            ok = state_end is not None and state_end != state_init and not state_end.get("recent_errors")
+            # [중간평가 반영] 상태가 바뀌고 오류 기록이 비었는지만 보면, 조치 뒤에도 장애가 남은 경우(전 F4)를 통과로 셌다.
+            #  코드 점검으로 기대 장애가 실제로 사라졌는지까지 본다.
+            ok = (state_end is not None and state_end != state_init and not state_end.get("recent_errors")
+                  and note.get("fault") not in tenant.supported_faults(tenant.compute_checks(state_end)))
         elif k == "state_unchanged_after_reject":
             ok = state_end == state_init
         elif k == "refuse":
@@ -152,8 +159,8 @@ def ragas_scores(results: list[dict]) -> dict:
         ids.append(r["id"])
     if not rows:
         return {}
-    llm = LangchainLLMWrapper(ChatBedrockConverse(model=RAGAS_MODEL or llm.MODEL_MAIN, region_name=llm.REGION, temperature=0))
-    emb = LangchainEmbeddingsWrapper(BedrockEmbeddings(model_id="amazon.titan-embed-text-v2:0", region_name=llm.REGION))
+    llm = LangchainLLMWrapper(ChatBedrockConverse(model=RAGAS_MODEL or llm_cfg.MODEL_MAIN, region_name=llm_cfg.REGION, temperature=0))
+    emb = LangchainEmbeddingsWrapper(BedrockEmbeddings(model_id="amazon.titan-embed-text-v2:0", region_name=llm_cfg.REGION))
     res = evaluate(EvaluationDataset.from_list(rows),
                    metrics=[Faithfulness(), ResponseRelevancy(), LLMContextPrecisionWithReference(), LLMContextRecall()],
                    llm=llm, embeddings=emb, show_progress=False)
@@ -181,11 +188,13 @@ def report(rnd: int, results: list[dict], per: dict, started: str, elapsed: floa
         means[k] = (round(sum(vals) / len(vals), 3), len(vals)) if vals else (None, 0)
     faith_n = sum(1 for v in per.values() if (v.get("faithfulness") or 0) >= 0.8)
     leak_cases = [r["id"] for r in results if r["blob_has_raw"]]
-    db_bytes = agent.DB_PATH.read_bytes() if agent.DB_PATH.exists() else b""
+    # [중간평가 반영] 체크포인트 파일이 없으면 검사 대상이 없는 것이지 '유출 0건'이 아니다 → 보고서에 따로 표시
+    db_missing = not agent.DB_PATH.exists()
+    db_bytes = b"" if db_missing else agent.DB_PATH.read_bytes()
     db_leak = [p for p in RAW_PII if p.encode() in db_bytes]
     L = [f"# Round {rnd} 평가 보고서", "",
-         f"- 실행 시각: {started} (소요 {elapsed:.0f}초), 모델: {llm.MODEL_MAIN} / {llm.MODEL_FAST}, temperature 0",
-         f"- RAGAS 채점 모델: {RAGAS_MODEL or llm.MODEL_MAIN}",
+         f"- 실행 시각: {started} (소요 {elapsed:.0f}초), 모델: {llm_cfg.MODEL_MAIN} / {llm_cfg.MODEL_FAST}, temperature 0",
+         f"- RAGAS 채점 모델: {RAGAS_MODEL or llm_cfg.MODEL_MAIN}",
          f"- 문서 인덱스 수집 기준일: {DOC_DATE}, checkpoint DB는 평가 시작 때 새로 만듦 (D-12)",
          "- 모든 케이스는 `handle_query`로 실행 (그래프 직접 호출 없음, D-7)", "",
          "## 1. 인-아웃 세트 통과율", "", f"**{passed} / {n} 통과**", "",
@@ -194,7 +203,7 @@ def report(rnd: int, results: list[dict], per: dict, started: str, elapsed: floa
          "| 기준 | 결과 |", "|---|---|",
          f"| AC-1 가드레일 규칙 R1~R5 (guardrail 3건 + R5 negative N3) | {sum(r['passed'] for r in results if r['category']=='guardrail' or r['id']=='N3')} / 4 |",
          f"| AC-2 faithfulness 평균 (positive·edge) | {means['faithfulness'][0]} (0.8 이상 {faith_n}/{means['faithfulness'][1]}) |",
-         f"| AC-3 원문 유출 (응답·trace / checkpoint DB) | {len(leak_cases)}건 {leak_cases} / {len(db_leak)}건 |",
+         f"| AC-3 원문 유출 (응답·trace / checkpoint DB) | {len(leak_cases)}건 {leak_cases} / {"검사 대상 없음(파일 없음)" if db_missing else f"{len(db_leak)}건"} |",
          f"| AC-4 1순위 원인 정확도 (positive) | {acc} / {len(pos)} |",
          f"| AC-5 원인별 근거 doc_id가 contexts에 있음 | {sum(r['evidence_ok'] for r in results)} / {n} |",
          f"| AC-7 3필드 유지 | {sum(r['three_fields'] for r in results)} / {n} |",
@@ -222,7 +231,7 @@ def main() -> None:
     a = ap.parse_args()
     global RAGAS_MODEL
     if a.ragas_model:
-        RAGAS_MODEL = llm.MODEL_FAST if a.ragas_model == "haiku" else a.ragas_model
+        RAGAS_MODEL = llm_cfg.MODEL_FAST if a.ragas_model == "haiku" else a.ragas_model
     if a.rescore:
         # [2차] 채점 모델을 바꿨을 때 1차 결과도 같은 모델로 다시 채점해 1차·2차를 공정하게 비교한다.
         src = Path(a.rescore)
@@ -265,6 +274,9 @@ def main() -> None:
     if not a.ids:
         (out / f"round{a.round}_report.md").write_text(report(a.round, results, per, started, time.time() - t0), encoding="utf-8")
     print(f"done: {sum(r['passed'] for r in results)}/{len(results)}")
+    # [중간평가 반영] 실패 케이스가 있으면 종료 코드 1 — 종료 코드만 보는 자동화도 회귀를 알아차리게
+    if not all(r["passed"] for r in results):
+        sys.exit(1)
 
 
 if __name__ == "__main__":

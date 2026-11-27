@@ -39,12 +39,16 @@ def reset_checkpoints() -> None:
 
 
 def _err(msg: str, thread_id: str | None = None) -> dict:
+    # [중간평가 반영] 오류 문구에 요청 값(예: 잘못된 scenario_id)이 그대로 실려 마스킹 없이 나가던 것을 막는다
+    msg = mask_pii(msg)[0]
     return {"answer": f"요청 오류: {msg}", "contexts": [], "trace": [{"step": "validate", "input": "", "output": msg}],
             **({"thread_id": thread_id} if thread_id else {})}
 
 
 def _response(st: dict, thread_id: str, waiting: bool) -> dict:
-    ctx = [{"doc_id": c["doc_id"], "text": c["text"]} for c in st.get("contexts", [])]
+    # [중간평가 반영] 테넌트 조회 전문(사용자 이메일 등)이 contexts 로 마스킹 없이 나가던 것을 막는다.
+    #  모델에는 원래 값을 주고(코드 점검·비교에 필요), 응답으로 내보낼 때만 가린다. 답변(answer)도 output_guard 에서 같은 규칙으로 가린다.
+    ctx = [{"doc_id": c["doc_id"], "text": mask_pii(c["text"])[0]} for c in st.get("contexts", [])]
     answer = st.get("answer") if not waiting else mask_pii(compose_answer(st, waiting=True))[0]
     res = {"answer": answer or CHECK, "contexts": ctx, "trace": st.get("trace", []), "thread_id": thread_id,
            "approval_required": waiting}

@@ -36,7 +36,9 @@ def compute_checks(state: dict) -> dict:
         ref_u = next((x for x in ref.get("users", []) if x["user_id"] == u["user_id"]), {})
         ids.append({"user_id": u["user_id"],
                     "email_upn_subject": "일치" if exact else ("대소문자만 다름" if lower_same else "값이 다름"),
-                    "email_changed_from_reference": bool(ref_u) and ref_u.get("email") != u.get("email"),
+                    # [중간평가 반영] 바뀐 식별자를 이전 식별자에 연결(조치 align_user_identifier)했으면 더는 문제가 아니다
+                    "email_changed_from_reference": bool(ref_u) and ref_u.get("email") != u.get("email")
+                                                    and not u.get("previous_identifier_mapped"),
                     "has_uppercase": any(c.isupper() for c in vals["subject_seen"])})
     checks["identifier_check"] = ids
 

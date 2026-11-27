@@ -28,7 +28,7 @@
       "fault_id": "F4",
       "risk": "med",
       "action": "영향받은 사용자의 식별자(이메일 소문자)를 매핑 값과 맞추고, 필요하면 attribute.as_user_identifier_N으로 추가 식별자를 매핑한다",
-      "patch": {"users[*].subject_seen": "=email_lower", "recent_errors": []}
+      "patch": {"users[*].email": "=email_lower", "users[*].upn": "=email_lower", "users[*].subject_seen": "=email_lower", "users[*].previous_identifier_mapped": true, "recent_errors": []}
     },
     {
       "fix_id": "restrict_group_claims",

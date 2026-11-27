@@ -757,3 +757,20 @@
 🔧 ④ test_queries.csv id 1~18 번호, 케이스 이름은 note `case=`, expected_traits에 사람이 읽는 설명 추가(판정 규칙·입력·금지·기대 도구는 그대로 확인). src/evaluation/cases.py 공통 로더 ⑤ README: RAGAS 최종 요약 4지표, 개선폭 +4건·최종 지표, 회고 3~10차 실패·채택·한계, Docker 실행 ⑥ 로컬 .env LANGSMITH_PROJECT를 .env.example과 같은 mini-pjt-ge-setting-agent로(키는 손대지 않음).
 🔧 ⑦ 18건 회귀 18/18(평가셋 변경 후). 클린 clone(GitHub → 새 venv 94초 → 서버 준비 88초 → 문의 22초 F6 → 승인 적용 → 화면 예외 0) 통과, README에 기록.
 🔧 GitHub Actions Docker 빌드 성공(run 45922618880): 이미지 빌드·키 없이 import/가드레일/진입점·Streamlit 기동 모두 success. README에 링크.
+
+### 122. 강사 중간평가(9일차 zip 스냅샷) 분석
+
+👤 9일차 zip에 대한 강사 중간평가(정적 분석, 위험 원장 높음·중간·낮음, 문서 대 코드 대조) 붙여넣기, "분석해서 점검해줘."
+🔧 현재 코드에서 '높음' 재확인: ① F4 조치 후에도 F4 남음 — S03·S07에서 align_user_identifier 적용 후 supported_faults={'F4'} 재현(나머지 S01·02·04·05·06·08은 해소) ② 평가기 state_fixed_after_approve가 장애 해소를 보지 않음(run_eval) ③ 색인 검증이 청크 수만 비교(retriever 105행), 없는 id면 KeyError(134행) ④ 벡터 검색 실패 시 BM25까지 함께 실패(130행) ⑤ 60초 상한은 ReAct 루프만, 분석·진단 호출은 제한 밖 ⑥ 불일치 판정 마지막 분기에서 오진이 '좋음' 가능 ⑦ ONLY_ON=1이면 끔 열=켬 열 ⑧ 증상 일치 판단이 모델 몫(M01, 알려진 한계).
+🔧 오늘 이미 해결: 5개 패키지 버전 고정, README 코드 줄 번호(리팩토링·진입 파일), 8→9차 상승의 실행 편차(같은 코드 3회 반복 비교), Docker·클린 환경 재현.
+🔧 보완 계획 제시(합의 대기).
+
+### 123. 중간평가 반영 A+B
+
+👤 "A+B 진행"
+🔧 A(코드): ① F4 조치 patch에 email·upn 소문자화와 previous_identifier_mapped 표시, checks가 이를 해소로 인정 → S00~S08 모두 조치 후 supported_faults 빈 집합 ② run_eval: state_fixed_after_approve에 기대 장애 해소 확인, CHECKPOINT_DB 기본값 eval_ckpt.sqlite, 실패 시 종료 코드 1, 체크포인트 파일 없으면 '검사 대상 없음' ③ retriever: 문서 내용 지문으로 컬렉션 이름(ge_docs_<sha12>), 벡터 검색·색인 준비 실패 시 BM25만, 옛 ID 건너뜀 ④ utils/llm: botocore Config(connect 10s, read 45s, retries 2) ⑤ mismatch_check '오진' 분기와 --rejudge(저장 결과 재판정, 좋음 7·단정 1·오진 0, 손 정리 보고서는 덮지 않게 — 한 번 덮어써서 git으로 되살림) ⑥ stress_hint ONLY_ON 시 끔 열 '-', 손 정리 보고서 덮지 않음 ⑦ entry: 오류 문구 마스킹, 응답 contexts 마스킹.
+🔧 B(문서): SERVICE(승인자 미확인, 근거 문서 ID, 시간 상한 실제 동작, 200 상태 코드, 코드 검증은 조회했을 때만, 전화번호 국내·+82만, contexts 마스킹), README 한계 6줄·중간평가 반영 내역·화면 색인 준비 시점.
+🔧 11차 1회차: 18/18 통과했으나 RAGAS 단계에서 UnboundLocalError — 리팩토링 때 `agent.MODEL_*`→`llm.MODEL_*`로 바꾸며 생긴 모듈 이름이 채점 함수의 지역 변수 llm과 충돌(리팩토링 회귀를 --no-ragas로만 돌려 놓침). `llm_cfg`로 이름 바꿔 수정, 11차 재실행 중.
+
+🔧 11차 재실행: **18/18**, AC-1 4/4, AC-4 7/7, 유출 0, faithfulness 0.851, context_precision 0.829, recall 0.939, answer_relevancy 0.298, judge 5.00 · 5.00 · 5.00 · 5.00. round11_report §5, README(RAGAS 최종 11차·11차 줄·개선폭·judge), 대시보드 11차 반영.
+👤 "zip은 안해도 됨. 과제제출은 github만 할거야." → zip 생성 생략.
