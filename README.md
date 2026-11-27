@@ -76,13 +76,29 @@ copy .env.example .env
 .venv\Scripts\python -X utf8 src\evaluation\run_eval.py --round 2 --ragas-model haiku
 ```
 
+Docker (클린 환경 재현, [Dockerfile](Dockerfile)) 또는 [run.sh](run.sh):
+
+```bash
+docker build -t mini-pjt .
+docker run --rm -p 8000:8000 --env-file .env mini-pjt                      # API
+docker run --rm -p 8501:8501 --env-file .env mini-pjt \
+  streamlit run src/ui/app.py --server.port 8501 --server.address 0.0.0.0  # 화면
+./run.sh setup && ./run.sh api                                             # Docker 없이
+```
+
 - 첫 실행 때 Chroma 인덱스(`chroma_db/`)를 만든다(Bedrock 임베딩 호출). API 서버·Streamlit·평가 실행기는 시작할 때 인덱스를 먼저 준비하므로, 깨끗한 clone에서는 서버가 뜨기까지 1분 남짓 걸린다(점검: 서버 준비 77초, 첫 요청 19초).
 - LLM-as-Judge: `.venv\Scripts\python -X utf8 src\evaluation\llm_judge.py evaluation\round4_results.json` (judge 모델 Claude Sonnet 4.5 고정)
 - 모델: 에이전트 Claude Sonnet 4.5, 분석 Claude Haiku 4.5 (Bedrock `us-east-1`), temperature 0.
 
 ## RAGAS 평가 결과
 
-positive·edge 11건, 채점 모델 Claude Haiku 4.5 (1차는 저장된 답변을 같은 모델로 다시 채점해 비교)
+최종(10차, positive·edge 11건, 채점 모델 Claude Haiku 4.5):
+- context_recall: **0.94**
+- context_precision: **0.83**
+- faithfulness: **0.87** (필수 기준 0.8 이상)
+- answer_relevancy: 0.26 (근거 나열 위주 답변의 대가, 아래 회고)
+
+라운드별 (positive·edge 11건, 채점 모델 Claude Haiku 4.5, 1차는 저장된 답변을 같은 모델로 다시 채점해 비교)
 
 | 지표 | 1차 | 2차 | 3차 | 4차 | 5차 | 6차 | 7차 | 8차 | 9차 | 10차 (최종) |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -110,7 +126,9 @@ positive·edge 11건, 채점 모델 Claude Haiku 4.5 (1차는 저장된 답변�
 - 반복 실행(같은 코드 3회씩, 중앙값): 개선 전 context_precision 0.512 → 개선 후 0.798(범위 0.768~0.810, 겹치지 않음), faithfulness 0.895 → 0.885(범위가 겹쳐 실행 편차 안), 6회 모두 18/18 — [evaluation/repeat_report.md](evaluation/repeat_report.md)
 - 불일치 점검(문의는 그대로, 시나리오만 다른 장애로 바꾼 8조합): 바람직한 답 0/8 → **7/8** — [evaluation/mismatch_report.md](evaluation/mismatch_report.md)
 - 강사 힌트 집중 점검(값 비교 원인 변형 20개, 같은 모호한 문의): checks 없음 14/20 → 비교값만 14/20 → **문제 판정까지 20/20** — [evaluation/stress_hint_report.md](evaluation/stress_hint_report.md)
-- 개선폭: 통과 **+4건**(1차→2차), faithfulness **0.241 → 0.893** / 주요 개선 사항: 평가기 판정 오류 수정, 마스킹 토큰 재탐지 버그 수정, F3·F4 구분 규칙, 원인별 근거 재검색, 테넌트 상태를 근거로 포함, 답변과 메타데이터 분리
+- **개선폭: +4건** (1차 14/18 → 2차 18/18, 이후 10차까지 18/18 유지). 지표는 1차 → 최종(10차) faithfulness 0.241 → 0.866, context_precision 0.600 → 0.834, context_recall 0.667 → 0.939
+  - 1차→2차 주요 개선: 평가기 판정 오류 수정, 마스킹 토큰 재탐지 버그 수정, F3·F4 구분 규칙, 원인별 근거 재검색, 테넌트 상태를 근거로 포함, 답변과 메타데이터 분리
+  - 3차 이후: 값 비교를 코드로(강사 피드백), 문제 판정(findings), 불일치 대응, 승인 후 문구, 원인 중심 재검색 — 라운드별 내용은 위 목록
 
 LLM-as-Judge (positive·edge 11건, judge Claude Sonnet 4.5, 1~5점): 정확성 5.00 · 근거성 5.00 · 실행 가능성 5.00 · 안전성 5.00 (6차, 4차는 4.82 · 5.00 · 4.82 · 5.00, 8차는 4.82 · 5.00 · 4.82 · 4.64 — 안전 감점은 E2 한 건으로, 승인 후 응답의 "조치를 적용했습니다" 문구를 judge가 표현상 문제로 본 것. 같은 문구에 7차는 5점. 문구를 "관리자 승인에 따라 조치를 적용했습니다"로 바꾼 9차는 4.82 · 5.00 · 4.73 · 5.00, 감점은 P2 한 건. 10차는 5.00 · 5.00 · 4.82 · 5.00). judge는 답변 문장만 보고 장애 번호 표기 오류는 잡지 못해, 통과 여부는 규칙 판정으로 한다 — [round4_report.md](evaluation/round4_report.md) §6
 
@@ -120,7 +138,7 @@ LLM-as-Judge (positive·edge 11건, judge Claude Sonnet 4.5, 1~5점): 정확성 
 
 | 표기 | 뜻 | 예 |
 |---|---|---|
-| P · N · E · G + 숫자 | 평가 케이스 id. 과제 범주 positive · negative · edge · guardrail의 첫 글자 | P6, N3, G1 |
+| P · N · E · G + 숫자 | 평가 케이스 이름. 과제 범주 positive · negative · edge · guardrail의 첫 글자. `test_queries.csv`의 id는 규약대로 1~18 번호이고 케이스 이름은 note의 `case=`에 있다 | P6(id 6), N3(id 14), G1(id 16) |
 | R1~R5 | 가드레일 **규칙**(Rule). SERVICE.md §4 | R1 개인정보, R2 시크릿, R3 인젝션, R4 승인 없는 변경 금지, R5 근거 없거나 증상과 맞지 않으면 확인 필요 |
 | S00~S08 | 가상 테넌트 시나리오(Scenario). S00은 정상 | S06 그룹 클레임 한도 초과 |
 | F1~F6 | 장애 종류(Fault). `data/faults.json` | F5 그룹 클레임 한도 |
@@ -137,17 +155,31 @@ LLM-as-Judge (positive·edge 11건, judge Claude Sonnet 4.5, 1~5점): 정확성 
 - 원인마다 근거 doc_id가 검색 결과에 있어야 한다는 필터(규칙 R5)를 그대로 적용 → 장애가 2개인 E1에서 두 원인이 모두 지워졌다.
 - 금지 문구를 trace 전체에서 찾게 한 평가기 → 입력에 들어 있던 인젝션 문장 때문에 케이스 G1이 잘못 실패했다. 이미 가린 `[SECRET]` 토큰을 다시 시크릿으로 잡는 마스킹 버그로 케이스 G2가 차단됐다.
 - 하루에 평가를 여러 번 돌리다 Bedrock 일일 토큰 한도에 걸려 2차 평가 두 번이 중간에 실패했다(무효 처리, `round2_attempt*_INVALID_*`).
+- (3·4차) answer_relevancy를 올리려고 답변 첫 문장을 질문에 맞춘 결론으로 모델이 쓰게 했다 → faithfulness가 0.8 아래로 떨어져 되돌렸다. 근거 없는 연결 문장이 함께 늘었다.
+- (4·5차) 대소문자·그룹 수 같은 값 비교를 모델이 원본 JSON을 보고 하게 했다 → 같은 모호한 문의의 변형 20개 중 14개만 맞혔다. 권장 구성과 다르기만 한 값(그룹 230개지만 필터로 해결된 경우)도 원인으로 삼았다.
+- (7차) 문의 증상과 테넌트 상태가 다른 장애일 때를 재 보니 바람직한 답이 0/8 — 증상에 끼워 맞추거나, 테넌트에 없는 장애를 지어내거나, 실제 문제를 빠뜨렸다. 규칙만 보면 8/8이 나온 중간 수정도 답변을 읽어 보니 연결 문장이 남고 승인 카드에 엉뚱한 조치가 떴다.
+- (8차) 승인 후 응답의 "조치를 적용했습니다"를 judge가 무단 적용으로 읽어 안전 1점을 줬다. 같은 문구에 7차는 5점이었다. 한 번 실행한 judge·RAGAS 점수가 흔들린다는 신호였다.
+- (10차) 한 번 실행한 faithfulness가 같은 코드에서 0.84~0.93까지 움직였다 → 라운드 사이 0.05 차이로는 개선·회귀를 말할 수 없었다. 근거 재검색 검색어에 평가 reference와 같은 문장(장애 근거 요약)을 쓰고 있었다는 것도 이때 발견했다(평가 누설). 원인 재검색이 Confluence 문서를 SharePoint 장애의 근거 1위로 끌어온 경우도 있었다(E2).
 
 **최종 채택한 접근 · 왜 그것으로 갔는가**
 - answer는 근거 있는 문장과 조치 순서만, 메타데이터는 `diagnosis` 구조화 필드로 분리 → 사람이 읽기 쉽고 채점도 공정하다.
 - 테넌트 상태와 제안 조치를 `tenant-state`, `fix:<id>` 항목으로 contexts에 포함, 문서 청크 앞에 출처·라이선스·수집일 머리말.
 - 근거가 없는 원인은 지우기 전에 장애 이름·근거 요약으로 한 번 더 검색.
 - 채점 모델을 Haiku로 바꾸고, 1차 결과도 같은 모델로 다시 채점해 1차·2차를 공정하게 비교. 한도 오류가 나면 평가를 즉시 멈추도록 평가기 보완.
+- answer_relevancy는 올리지 않기로 했다. 관리자에게 필요한 것은 근거 있는 진단이라 faithfulness(0.8 이상)를 우선했다.
+- **값 비교와 문제 판정은 코드가** 한다(강사 피드백): `check_tenant_state`가 기준 구성과의 차이, 그룹 수 한도, 식별자 대소문자를 계산하고 `findings`(문제)와 `not_a_problem`(문제 아님)으로 나눠 돌려준다. 장애 ID는 숨긴다. 변형 20개가 20/20.
+- **원인 후보는 코드 점검으로 검증**한다: 테넌트에 근거 없는 원인은 빼고, 빠진 실제 문제는 채우고, 증상과 맞지 않으면 확신도를 낮추고 "확인 필요"를 밝힌다. 승인 카드에는 1순위 원인과 같은 장애의 조치만 뜬다(불일치 7/8).
+- 승인 후 문구를 "관리자 승인에 따라 조치를 적용했습니다"로 바꿨다. judge가 미래형("적용 예정")을 권했지만 이미 적용된 뒤라 사실과 달라져 따르지 않았다.
+- **개선 효과는 같은 코드 3회 반복으로 판정**한다(중앙값·범위). 원인마다 장애 이름과 모델의 원인 설명으로 근거를 다시 찾고(평가 reference 문장은 검색어에서 제외), 다른 커넥터 문서는 빼고, 원인 근거를 contexts 앞에 둔다 → context_precision 0.512 → 0.798(범위가 겹치지 않음), faithfulness는 범위 안.
+- 코드를 도메인별 폴더(`src/diagnosis`, `src/tenant`, `src/knowledge` …)로 정리하고 규칙을 [CLAUDE.md](CLAUDE.md)에 적었다. 리팩토링 전후 18건 결과가 같은지 확인했다.
 
 **남은 한계 · 향후 개선 방향**
 - 사람 이름 마스킹은 규칙 기반이라 놓칠 수 있다(SERVICE.md 알려진 한계).
 - 실제 테넌트 변경은 하지 않는다(가상 테넌트). 확장 시 위험도 낮은 조치부터 Graph API 실행.
 - 프로비저닝·온보딩 단계, SharePoint 외 커넥터로 장애 목록 확장. 문서용 MCP(Google Developer Knowledge, Microsoft Learn)로 문서 수집 자동화.
+- 증상과 원인이 맞는지는 아직 모델이 판단한다. 그럴듯하게 이어 붙일 수 있는 조합(불일치 점검 M01)은 놓친다.
+- answer_relevancy가 낮다(0.26). 진단 결과로 코드가 채우는 결론 한 줄을 답변 맨 앞에 붙이는 방법을 다음에 시험해 볼 수 있다.
+- 평가 세트 18건은 모두 우리가 만든 문의다. 처음 보는 문의로 일반화를 따로 재 보지 않았다.
 
 ## 핵심 코드 위치
 
