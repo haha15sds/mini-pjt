@@ -19,6 +19,12 @@ ENV PYTHONUTF8=1 \
 
 WORKDIR /app
 
+# ragas 가 쓰는 scikit-network 는 리눅스 Python 3.14용 wheel 이 없어 소스에서 빌드한다 → C++ 컴파일러가 필요하다
+# (GitHub Actions 첫 빌드에서 "/usr/bin/g++ 없음"으로 실패해 추가)
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends g++ \
+ && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
