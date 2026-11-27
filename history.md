@@ -782,3 +782,5 @@
 🔧 캡처로 찾은 것: 평가 대시보드 상단 숫자가 라운드 11개라 "1…"로 잘림 → 1차·2차·최종·목표만 숫자로(app.py). G1 요약 첫 글자 깨짐("테�anten트")은 재촬영에서 재현 안 됨(모델 출력 1회 흔들림).
 🔧 LangSmith: 프로젝트 mini-pjt-ge-setting-agent에 기록 확인. ReAct 노드의 모델 호출이 그래프 밖 별도 트레이스(RunnableWithFallbacks)로 떨어져 있었음 — 60초 상한용 별도 스레드로 추적 맥락이 안 넘어감 → `llm_tools.invoke(msgs, config=config)`로 수정, 재실행해 한 트레이스(하위 28개, 토큰 23,618)에 input_guard→analyze→agent(모델·도구 3종)→plan_runbook→approval_gate가 묶인 것 확인.
 🔧 README에 '시연 화면'(이미지 4장+대시보드 링크)과 'Observability' 절 추가. LangSmith 화면 자체는 로그인이 필요해 캡처 못 함 → 공개 공유 링크는 사용자 확인 후.
+
+👤 "공개 공유해줘" → LangSmith 트레이스(P4, S04) 1건 공개 링크 생성, 공개 페이지를 헤드리스 크롬으로 캡처(docs/images/langsmith_trace.png). 노드 트리(input_guard → analyze → agent: 모델 3회·도구 3개 → plan_runbook → approval_gate)가 한 트레이스로 보임. README Observability 절에 링크·이미지 추가.

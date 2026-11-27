@@ -113,6 +113,10 @@ docker run --rm -p 8501:8501 --env-file .env mini-pjt \
 
 최종 코드로 P4 문의 1건을 실행해 LangSmith API로 확인한 트레이스 구조(2026-11-27): 한 트레이스에 하위 실행 28개, 토큰 23,618
 
+- 공개 트레이스(로그인 없이 보기): https://apac.smith.langchain.com/public/ece11bf9-1268-464b-99a8-47351fd1b4c0/r — 마스킹된 문의와 가상 테넌트 데이터만 담겨 있다.
+
+![LangSmith 트레이스](docs/images/langsmith_trace.png)
+
 ```
 LangGraph
 ├─ input_guard
