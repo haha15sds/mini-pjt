@@ -729,3 +729,10 @@
 🔧 확인: 전체 컴파일·import, Streamlit AppTest 예외 0, API(/health·빈 질문·잘못된 decision) 3필드 유지, 실제 1건(S04) 진단 F6·승인 후 적용·재승인 차단 정상. 18건 회귀(--no-ragas) 실행 중.
 🔧 문서: CLAUDE.md(폴더 역할·파일 배치·의존 방향·새 코드 위치 규칙), README 실행 명령·핵심 코드 위치, 루트 밖 launch.json 화면 경로.
 🔧 18건 회귀(리팩토링 후, --no-ragas, 결과 evaluation/refactor_check/): **18/18**, 1순위 원인 전부 정답과 같음 → 동작 변화 없음.
+
+### 118. public 저장소 push
+
+👤 "만들었어, push해줘" → 저장소 이름이 `mini-pjt_`로 만들어져 있어 확인 요청 → "새로 만들었어, 다시 확인해줘."
+🔧 공개 전 점검: 전체 이력 키·토큰 0건, 작성자 noreply 하나, 회사·개인 정보 없음(010-0000-1234는 가상 번호, 메일은 공식 문서 예시 도메인과 archify 도구 피드백 주소뿐).
+🔧 https://github.com/haha15sds/mini-pjt (public, 빈 저장소 확인) 에 `git push -u origin master:main` → main = 30a99fe, 파일 136개. 비로그인으로 README 조회 200.
+🔧 남은 정리: sds-ax-training/mini-pjt_haha15(옛 9차 버전)과 빈 저장소 mini-pjt_ 처리, 시연 캡처, Google Form 제출.
