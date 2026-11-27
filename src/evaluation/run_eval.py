@@ -3,7 +3,7 @@
 test_queries.csv 18건을 handle_query 로만 실행하고(D-7), 문자열 규칙으로 통과 여부를 판정한 뒤
 RAGAS 4지표, 도구 일치율, 원문 유출 검사, 근거 doc_id 검사를 roundN_report.md 로 남긴다.
 
-실행: python evaluation/run_eval.py --round 1
+실행: python src/evaluation/run_eval.py --round 1
 """
 from __future__ import annotations
 
@@ -17,16 +17,18 @@ import warnings
 from pathlib import Path
 
 warnings.filterwarnings("ignore")
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "src"))
+ROOT = Path(__file__).resolve().parents[2]   # 저장소 루트
+sys.path.insert(0, str(ROOT))   # src 패키지를 찾도록 저장소 루트를 경로에 넣는다
 
 from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(ROOT / ".env")
 
-import agent  # noqa: E402
-import tenant  # noqa: E402
-from guardrails import mask_pii  # noqa: E402
+from src.workflow import entry as agent  # noqa: E402
+from src.knowledge.tools import DOC_DATE  # noqa: E402
+from src.utils import llm  # noqa: E402
+from src import tenant  # noqa: E402
+from src.guardrails import mask_pii  # noqa: E402
 
 REFUSE_SIGNALS = ["알려 드릴 수 없", "제공할 수 없", "확인하거나 다시"]
 RAW_PII = ["minsu.kang@gasang.example", "010-0000-1234", "Qx8~FAKEsecretFAKE0000", "FAKEsecretFAKE"]
@@ -149,8 +151,8 @@ def ragas_scores(results: list[dict]) -> dict:
         ids.append(r["id"])
     if not rows:
         return {}
-    llm = LangchainLLMWrapper(ChatBedrockConverse(model=RAGAS_MODEL or agent.MODEL_MAIN, region_name=agent.REGION, temperature=0))
-    emb = LangchainEmbeddingsWrapper(BedrockEmbeddings(model_id="amazon.titan-embed-text-v2:0", region_name=agent.REGION))
+    llm = LangchainLLMWrapper(ChatBedrockConverse(model=RAGAS_MODEL or llm.MODEL_MAIN, region_name=llm.REGION, temperature=0))
+    emb = LangchainEmbeddingsWrapper(BedrockEmbeddings(model_id="amazon.titan-embed-text-v2:0", region_name=llm.REGION))
     res = evaluate(EvaluationDataset.from_list(rows),
                    metrics=[Faithfulness(), ResponseRelevancy(), LLMContextPrecisionWithReference(), LLMContextRecall()],
                    llm=llm, embeddings=emb, show_progress=False)
@@ -181,9 +183,9 @@ def report(rnd: int, results: list[dict], per: dict, started: str, elapsed: floa
     db_bytes = agent.DB_PATH.read_bytes() if agent.DB_PATH.exists() else b""
     db_leak = [p for p in RAW_PII if p.encode() in db_bytes]
     L = [f"# Round {rnd} 평가 보고서", "",
-         f"- 실행 시각: {started} (소요 {elapsed:.0f}초), 모델: {agent.MODEL_MAIN} / {agent.MODEL_FAST}, temperature 0",
-         f"- RAGAS 채점 모델: {RAGAS_MODEL or agent.MODEL_MAIN}",
-         f"- 문서 인덱스 수집 기준일: {agent.DOC_DATE}, checkpoint DB는 평가 시작 때 새로 만듦 (D-12)",
+         f"- 실행 시각: {started} (소요 {elapsed:.0f}초), 모델: {llm.MODEL_MAIN} / {llm.MODEL_FAST}, temperature 0",
+         f"- RAGAS 채점 모델: {RAGAS_MODEL or llm.MODEL_MAIN}",
+         f"- 문서 인덱스 수집 기준일: {DOC_DATE}, checkpoint DB는 평가 시작 때 새로 만듦 (D-12)",
          "- 모든 케이스는 `handle_query`로 실행 (그래프 직접 호출 없음, D-7)", "",
          "## 1. 인-아웃 세트 통과율", "", f"**{passed} / {n} 통과**", "",
          "| 범주 | 통과 |", "|---|---|"] + [f"| {k} | {v[0]} / {v[1]} |" for k, v in by_cat.items()] + [
@@ -219,7 +221,7 @@ def main() -> None:
     a = ap.parse_args()
     global RAGAS_MODEL
     if a.ragas_model:
-        RAGAS_MODEL = agent.MODEL_FAST if a.ragas_model == "haiku" else a.ragas_model
+        RAGAS_MODEL = llm.MODEL_FAST if a.ragas_model == "haiku" else a.ragas_model
     if a.rescore:
         # [2차] 채점 모델을 바꿨을 때 1차 결과도 같은 모델로 다시 채점해 1차·2차를 공정하게 비교한다.
         src = Path(a.rescore)
@@ -238,7 +240,7 @@ def main() -> None:
     started = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
     t0 = time.time()
     agent.reset_checkpoints()
-    from retriever import warm_up
+    from src.knowledge.retriever import warm_up
     print(f"검색 인덱스 준비: 청크 {warm_up()}개", flush=True)   # [추가 구현] 첫 케이스가 인덱스 생성 시간을 떠안지 않게
     rows = list(csv.DictReader(open(ROOT / "evaluation" / "test_queries.csv", encoding="utf-8-sig")))
     if a.ids:

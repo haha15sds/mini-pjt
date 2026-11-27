@@ -3,7 +3,7 @@
 positive·edge 응답을 정답 장애(faults.json)와 비교해 4개 기준을 1~5점으로 매긴다.
 judge 모델·온도는 고정한다. 라운드끼리 비교할 때는 항상 같은 judge로 채점한다.
 
-실행: python evaluation/llm_judge.py evaluation/round4_results.json
+실행: python src/evaluation/llm_judge.py evaluation/round4_results.json
 """
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 from langchain_aws import ChatBedrockConverse
 from pydantic import BaseModel, Field
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]   # 저장소 루트
 load_dotenv(ROOT / ".env")
 
 JUDGE_MODEL = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"

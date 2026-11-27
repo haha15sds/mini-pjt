@@ -62,22 +62,22 @@ py -3.14 -m venv .venv
 copy .env.example .env
 
 # 3) (선택) 공식 문서 다시 수집 - data/docs/에 이미 들어 있음
-.venv\Scripts\python scripts\collect_docs.py
+.venv\Scripts\python -m src.knowledge.collect_docs
 
 # 4) API 서버
-.venv\Scripts\python -m uvicorn api:app --app-dir src --port 8000
+.venv\Scripts\python -m uvicorn src.api.server:app --port 8000
 #    curl -X POST localhost:8000/query -H "Content-Type: application/json" -d "{\"question\": \"...\", \"scenario_id\": \"S04\"}"
 #    승인: {"thread_id": "<응답의 thread_id>", "decision": "approve"}
 
 # 5) 화면 (샘플 응답 모드는 Bedrock 호출 없이 동작)
-.venv\Scripts\python -m streamlit run app.py
+.venv\Scripts\python -m streamlit run src\ui\app.py
 
 # 6) 평가 (18건, RAGAS 채점 모델 Haiku)
-.venv\Scripts\python -X utf8 evaluation\run_eval.py --round 2 --ragas-model haiku
+.venv\Scripts\python -X utf8 src\evaluation\run_eval.py --round 2 --ragas-model haiku
 ```
 
 - 첫 실행 때 Chroma 인덱스(`chroma_db/`)를 만든다(Bedrock 임베딩 호출). API 서버·Streamlit·평가 실행기는 시작할 때 인덱스를 먼저 준비하므로, 깨끗한 clone에서는 서버가 뜨기까지 1분 남짓 걸린다(점검: 서버 준비 77초, 첫 요청 19초).
-- LLM-as-Judge: `.venv\Scripts\python -X utf8 evaluation\llm_judge.py evaluation\round4_results.json` (judge 모델 Claude Sonnet 4.5 고정)
+- LLM-as-Judge: `.venv\Scripts\python -X utf8 src\evaluation\llm_judge.py evaluation\round4_results.json` (judge 모델 Claude Sonnet 4.5 고정)
 - 모델: 에이전트 Claude Sonnet 4.5, 분석 Claude Haiku 4.5 (Bedrock `us-east-1`), temperature 0.
 
 ## RAGAS 평가 결과
@@ -151,16 +151,18 @@ LLM-as-Judge (positive·edge 11건, judge Claude Sonnet 4.5, 1~5점): 정확성 
 
 ## 핵심 코드 위치
 
-- [src/agent.py:324](src/agent.py) — 메인 에이전트 그래프 `build_graph` (노드 6개), [src/agent.py:372](src/agent.py) 단일 진입점 `handle_query`
-- [src/agent.py:127](src/agent.py) — LCEL 구조화 출력 `analyze_chain`, [src/agent.py:216](src/agent.py) `plan_chain`
-- [src/agent.py:275](src/agent.py) — HITL `approval_gate` (`interrupt`)
-- [src/tools.py](src/tools.py) — 도메인 도구 `retrieve_docs`·`check_tenant_state`·`propose_fix`
-- [src/retriever.py:89](src/retriever.py) — RAG 파이프라인 `HybridRetriever` (Chroma + BM25 + RRF)
-- [src/guardrails.py:30](src/guardrails.py) — `mask_pii`, 인젝션 탐지
-- [src/tenant.py](src/tenant.py) — 가상 테넌트, 장애 주입, `apply_fix`
-- [src/api.py](src/api.py) — FastAPI `POST /query`
-- [app.py](app.py) — Streamlit 화면
-- [evaluation/run_eval.py](evaluation/run_eval.py) — 평가 실행기
+`src/` 는 에이전트의 도메인(기능)별 폴더로 나뉜다. 폴더 역할과 파일 배치 규칙은 [CLAUDE.md](CLAUDE.md)에 있다. 명령은 모두 저장소 루트에서 실행한다.
+
+- [src/workflow/graph.py:18](src/workflow/graph.py) — 메인 그래프 `build_graph` (노드 6개), [src/workflow/entry.py:58](src/workflow/entry.py) 단일 진입점 `handle_query`
+- [src/diagnosis/analyze.py:10](src/diagnosis/analyze.py) — LCEL 구조화 출력 `analyze_chain`, [src/diagnosis/plan.py:15](src/diagnosis/plan.py) `plan_chain`·`plan_runbook`(원인 검증·근거 재검색)
+- [src/diagnosis/react.py](src/diagnosis/react.py) — ReAct 에이전트 노드와 도구 목록 `TOOLS`, [src/diagnosis/prompts.py](src/diagnosis/prompts.py) 프롬프트, [src/diagnosis/schemas.py](src/diagnosis/schemas.py) 구조화 출력 스키마
+- [src/approval/gate.py:12](src/approval/gate.py) — HITL `approval_gate` (`interrupt`)
+- [src/knowledge/retriever.py:90](src/knowledge/retriever.py) — RAG 파이프라인 `HybridRetriever` (Chroma + BM25 + RRF), [src/knowledge/tools.py](src/knowledge/tools.py) `retrieve_docs`
+- [src/tenant/store.py](src/tenant/store.py) — 가상 테넌트, 장애 주입, `apply_fix`, [src/tenant/checks.py:13](src/tenant/checks.py) 코드 점검 `compute_checks`, [src/tenant/tools.py](src/tenant/tools.py) `check_tenant_state`·`propose_fix`
+- [src/guardrails/policies.py:30](src/guardrails/policies.py) — `mask_pii`, 인젝션 탐지, 비밀값 요청 거절
+- [src/api/server.py](src/api/server.py) — FastAPI `POST /query`
+- [src/ui/app.py](src/ui/app.py) — Streamlit 화면
+- [src/evaluation/run_eval.py](src/evaluation/run_eval.py) — 평가 실행기 (결과·보고서는 루트의 `evaluation/`)
 
 ## 데이터 출처
 

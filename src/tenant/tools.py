@@ -1,9 +1,6 @@
-"""도메인 도구 (패턴 2·4: ReAct 에이전트가 자율 선택하는 도구 여러 개).
+"""가상 테넌트 도구 (패턴 2·4): check_tenant_state(읽기), propose_fix(제안만).
 
-에이전트가 쓸 수 있는 도구는 읽기·제안뿐이다(D-8).
-- retrieve_docs      : 공식 문서 하이브리드 검색
-- check_tenant_state : 가상 테넌트 설정값·최근 오류 조회 (장애 ID 는 돌려주지 않음)
-- propose_fix        : fix catalog 의 조치를 '제안'만 한다. 실제 적용(apply_fix)은 approval_gate 가 승인 후에 한다(D-3).
+실제 적용(apply_fix)은 에이전트 도구가 아니고, 승인 게이트(src/approval/gate.py)가 관리자 승인 후에만 부른다(D-3).
 """
 from __future__ import annotations
 
@@ -13,37 +10,11 @@ import os
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
-import tenant
-from retriever import get_retriever
+from src import tenant
 
 
 def _thread_id(config: RunnableConfig) -> str:
     return (config or {}).get("configurable", {}).get("thread_id", "default")
-
-
-@tool(response_format="content_and_artifact")
-def retrieve_docs(query_ko: str, query_en: str = "") -> tuple[str, list[dict]]:
-    """Gemini Enterprise 공식 문서(SharePoint 커넥터, Entra ID, Workforce Identity Federation 등)를 검색한다.
-
-    Args:
-        query_ko: 한국어 검색어 (사용자 문의의 증상 요약)
-        query_en: 영어 검색어 (문서가 영어이므로 핵심 용어를 영어로)
-    """
-    chunks = get_retriever().search([query_ko, query_en], k=5)
-    lines, artifact = [], []
-    for c in chunks:
-        lines.append(f"[{c.chunk_id}] ({c.title} > {c.section})\n{c.text[:900]}")
-        artifact.append(ctx_entry(c))
-    return "\n\n".join(lines) or "검색 결과 없음", artifact
-
-
-DOC_DATE = "2026-11-25"
-
-
-def ctx_entry(c) -> dict:
-    """[2차] contexts 항목. 본문 앞에 문서 ID·제목·출처·라이선스·수집일을 붙여, 답변의 출처 표기도 근거로 확인되게 한다."""
-    head = f"[{c.chunk_id}] {c.title} - {c.section} (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 {DOC_DATE})"
-    return {"doc_id": c.chunk_id, "text": f"{head}\n{c.text}", "title": c.title, "section": c.section, "url": c.url}
 
 
 @tool
@@ -71,5 +42,3 @@ def propose_fix(fix_id: str, reason: str) -> str:
     f = tenant.FIXES[fix_id]
     return f"제안 기록됨: {fix_id} (위험도 {f['risk']}) - {f['action']}. 관리자 승인 전까지 적용되지 않습니다."
 
-
-TOOLS = [retrieve_docs, check_tenant_state, propose_fix]

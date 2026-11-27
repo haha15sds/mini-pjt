@@ -721,3 +721,11 @@
 🔧 E2 하락 원인: F2 재검색 1위가 Confluence 'minimum application scopes'(다른 커넥터). 원인 재검색에서 ge-confluence 문서 제외(k=4 검색 후 상위 2개).
 🔧 정식 10차(최종 코드): 18/18, AC-1 4/4, AC-4 7/7, 유출 0, context_precision 0.834, faithfulness 0.866, recall 0.939, judge 5.00 · 5.00 · 4.82 · 5.00 → 개선 채택.
 🔧 반영: round10_report §5, repeat_report 결론, README(RAGAS 10차 열·10차 줄·반복 실행 줄·judge), 대시보드 10차.
+
+### 117. 제출 방식 확정과 도메인별 폴더 리팩토링
+
+👤 "GitHub URL로 제출하는거고 Public이고, 내 깃헙 haha15sds/mini-pjt 로 하면 될거 같어. 그리고, 리팩토링 해야하고. 한개씩 해보자." → 안내 프롬프트 전달: src/ 아래 도메인(기능)별 폴더, 도메인 안에 로직·프롬프트·스키마, 공통 LLM 설정·유틸만 src/utils/, 승인 없이 바로 진행, 트리 보고, 규칙을 CLAUDE.md(또는 AGENTS.md)에 정의.
+🔧 구조: src/{utils, guardrails, knowledge, tenant, diagnosis, approval, workflow, api, ui, evaluation}. agent.py(509줄)를 diagnosis(schemas·prompts·analyze·react·plan)·approval(gate)·workflow(state·guards·answer·graph·entry)·utils(llm·text·paths)로 분리. tools.py는 knowledge/tools.py(retrieve_docs)와 tenant/tools.py(check_tenant_state·propose_fix)로, tenant.py는 store.py·checks.py로. app.py→src/ui/app.py, api.py→src/api/server.py, evaluation/*.py·scripts/collect_docs.py→src/evaluation·src/knowledge. 평가 입력·결과는 루트 evaluation/ 유지. import는 `src.` 절대 경로, text_of·text_of_dict 하나로 합침(동작 같음). 이동은 git mv로 이력 보존.
+🔧 확인: 전체 컴파일·import, Streamlit AppTest 예외 0, API(/health·빈 질문·잘못된 decision) 3필드 유지, 실제 1건(S04) 진단 F6·승인 후 적용·재승인 차단 정상. 18건 회귀(--no-ragas) 실행 중.
+🔧 문서: CLAUDE.md(폴더 역할·파일 배치·의존 방향·새 코드 위치 규칙), README 실행 명령·핵심 코드 위치, 루트 밖 launch.json 화면 경로.
+🔧 18건 회귀(리팩토링 후, --no-ragas, 결과 evaluation/refactor_check/): **18/18**, 1순위 원인 전부 정답과 같음 → 동작 변화 없음.

@@ -5,7 +5,7 @@
 - checks(코드 계산)를 켠 경우와 끈 경우(DISABLE_CHECKS=1)를 각각 돌려 1순위 원인 일치율을 비교한다.
 - 정식 인-아웃 세트(18건)와 별개의 점검이다. 결과: evaluation/stress_hint_report.md
 
-실행: python evaluation/stress_hint.py
+실행: python src/evaluation/stress_hint.py
 """
 from __future__ import annotations
 
@@ -17,14 +17,14 @@ import warnings
 from pathlib import Path
 
 warnings.filterwarnings("ignore")
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "src"))
+ROOT = Path(__file__).resolve().parents[2]   # 저장소 루트
+sys.path.insert(0, str(ROOT))   # src 패키지를 찾도록 저장소 루트를 경로에 넣는다
 from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(ROOT / ".env")
-import agent  # noqa: E402
-import tenant  # noqa: E402
-from retriever import warm_up  # noqa: E402
+from src.workflow import entry as agent  # noqa: E402
+from src import tenant  # noqa: E402
+from src.knowledge.retriever import warm_up  # noqa: E402
 
 MAIL = "안녕하세요, 가상상사 IT팀입니다.\n일부 직원이 Gemini Enterprise에서 SharePoint 문서가 검색되지 않는다고 합니다. 원인과 조치를 알려 주세요.\n\nIT팀 드림"
 SAML = {"wif_mapping.provider": "Entra ID (SAML)"}

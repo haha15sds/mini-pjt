@@ -4,7 +4,7 @@
 라운드 간 작은 차이가 개선인지 편차인지 구분할 수 없었다. 개선 전(9차 코드)과 개선 후(원인 중심 재검색)를
 각각 3번씩 돌려 비교한다.
 
-실행: python evaluation/repeat_summary.py   → evaluation/repeat_report.md
+실행: python src/evaluation/repeat_summary.py   → evaluation/repeat_report.md
 """
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ import json
 import statistics as stt
 from pathlib import Path
 
-EV = Path(__file__).resolve().parent
+EV = Path(__file__).resolve().parents[2] / "evaluation"   # 결과 파일은 저장소 루트의 evaluation/
 GROUPS = {
     "개선 전 (9차 코드)": [EV / "round9_results.json", EV / "repeat/before_r2/round9_results.json", EV / "repeat/before_r3/round9_results.json"],
     "개선 후 (원인 중심 재검색)": [EV / f"repeat/after_r{i}/round10_results.json" for i in (1, 2, 3)],

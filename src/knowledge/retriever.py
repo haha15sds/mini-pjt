@@ -17,9 +17,10 @@ from dotenv import load_dotenv
 from kiwipiepy import Kiwi
 from rank_bm25 import BM25Okapi
 
-load_dotenv()
+from src.utils.paths import ROOT
 
-ROOT = Path(__file__).resolve().parent.parent
+load_dotenv(ROOT / ".env")
+
 DOCS_DIR = ROOT / "data" / "docs"
 CHROMA_DIR = ROOT / "chroma_db"
 COLLECTION = "ge_docs_v1"

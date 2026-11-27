@@ -1,6 +1,6 @@
 """FastAPI 서버: POST /query (과제 규약).
 
-실행: uvicorn api:app --app-dir src --port 8000
+실행: uvicorn src.api.server:app --port 8000   (저장소 루트에서)
 요청 본문 {"question"} 만으로 동작하고, 승인 흐름에는 thread_id·decision 을 함께 보낸다.
 scenario_id 는 가상 테넌트에 주입할 장애 시나리오(S00~S08, 시연·평가용 선택 필드)다.
 uvicorn 접근 로그에는 본문이 남지 않으며, 이 모듈도 질문 원문을 로그로 쓰지 않는다(D-6).
@@ -14,9 +14,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from agent import handle_query
-
-from retriever import warm_up
+from src.knowledge.retriever import warm_up
+from src.workflow.entry import handle_query
 
 warm_up()   # [추가 구현] 서버가 요청을 받기 전에 검색 인덱스를 준비한다 (깨끗한 clone 첫 요청 시간 초과 방지)
 

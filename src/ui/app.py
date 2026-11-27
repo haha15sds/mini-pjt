@@ -1,6 +1,6 @@
 """Gemini Enterprise 설정 지원 에이전트 - Streamlit 화면 (D-13).
 
-실행: streamlit run app.py
+실행: streamlit run src/ui/app.py   (저장소 루트에서)
 - 에이전트는 handle_query 만 부른다(D-7). 화면에는 마스킹된 텍스트만 보인다.
 - '샘플 응답으로 보기'를 켜면 Bedrock 호출 없이 저장된 샘플(data/demo/sample_response.json)로 화면을 보여 준다.
 - 화면 구성은 docs/prototype/index.html 프로토타입을 따른다:
@@ -18,11 +18,11 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-ROOT = Path(__file__).resolve().parent
-sys.path.insert(0, str(ROOT / "src"))
+ROOT = Path(__file__).resolve().parents[2]   # 저장소 루트
+sys.path.insert(0, str(ROOT))                # streamlit 은 스크립트 폴더만 경로에 넣으므로 루트를 더해 src 패키지를 찾게 한다
 
-import tenant  # noqa: E402
-from guardrails import detect_injection, mask_pii  # noqa: E402
+from src import tenant  # noqa: E402
+from src.guardrails import detect_injection, mask_pii  # noqa: E402
 
 st.set_page_config(page_title="GE 설정 지원 에이전트", page_icon=":material/build:", layout="wide")
 
@@ -100,13 +100,13 @@ if "_pending" in ss:
 
 @st.cache_resource(show_spinner="검색 인덱스 준비 중... (처음 한 번)")
 def _warm() -> int:
-    from retriever import warm_up
+    from src.knowledge.retriever import warm_up
     return warm_up()
 
 
 def call_agent(**kw) -> dict:
     _warm()   # [추가 구현] 실제 에이전트를 처음 부를 때 인덱스를 먼저 준비
-    from agent import handle_query  # Bedrock 클라이언트는 실제 호출 때만 불러온다
+    from src.workflow.entry import handle_query  # Bedrock 클라이언트는 실제 호출 때만 불러온다
     return handle_query(**kw)
 
 

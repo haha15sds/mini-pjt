@@ -9,7 +9,7 @@
 - 숨김   : 원인 후보가 없고 테넌트의 실제 장애도 언급하지 않음
 - 지어냄 : 테넌트에 없는 장애(문의 증상의 장애)를 원인으로 내놓음
 
-실행: python evaluation/mismatch_check.py   → evaluation/mismatch_report.md
+실행: python src/evaluation/mismatch_check.py   → evaluation/mismatch_report.md
 """
 from __future__ import annotations
 
@@ -21,14 +21,14 @@ import warnings
 from pathlib import Path
 
 warnings.filterwarnings("ignore")
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "src"))
+ROOT = Path(__file__).resolve().parents[2]   # 저장소 루트
+sys.path.insert(0, str(ROOT))   # src 패키지를 찾도록 저장소 루트를 경로에 넣는다
 from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(ROOT / ".env")
-import agent  # noqa: E402
-import tenant  # noqa: E402
-from retriever import warm_up  # noqa: E402
+from src.workflow import entry as agent  # noqa: E402
+from src import tenant  # noqa: E402
+from src.knowledge.retriever import warm_up  # noqa: E402
 
 # (id, 문의 케이스, 문의 증상의 장애, 바꿔 낀 시나리오, 그 시나리오의 실제 장애)
 CASES = [

@@ -4,7 +4,7 @@ Gemini Enterprise 공식 문서(docs.cloud.google.com, CC BY 4.0)를 내려받�
 본문만 마크다운에 가깝게 바꿔 data/docs/{doc_id}.md 로 저장한다.
 파일 맨 위에 doc_id·제목·URL·최종 업데이트일·라이선스·수집일을 적는다.
 
-실행: python scripts/collect_docs.py
+실행: python -m src.knowledge.collect_docs
 """
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ DOCS = {
     "ge-confluence-cloud": "connectors/confluence-cloud/third-party-config",
     "ge-access-control": "access-control",
 }
-OUT = Path(__file__).resolve().parent.parent / "data" / "docs"
+OUT = Path(__file__).resolve().parents[2] / "data" / "docs"   # 저장소 루트의 data/docs
 
 BLOCK = {"p", "li", "tr", "pre", "h1", "h2", "h3", "h4", "h5", "dt", "dd", "table", "div", "section", "aside"}
 SKIP = {"script", "style", "nav", "button", "devsite-feedback", "devsite-thumb-rating", "svg"}
