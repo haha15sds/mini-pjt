@@ -1,0 +1,45 @@
+# 클린 환경 재현 검증: push 마다 GitHub 서버에서 Docker 이미지를 새로 빌드하고, 키 없이 확인할 수 있는 것을 점검한다.
+# (Bedrock 키가 필요한 실제 질의는 README '클린 환경 재현 검증'에 로컬 결과로 남긴다)
+name: docker-build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 이미지 빌드
+        run: docker build -t mini-pjt .
+
+      - name: 패키지 import·가드레일·진입점 검증 (키 없이)
+        run: |
+          docker run --rm -e AWS_DEFAULT_REGION=us-east-1 mini-pjt python -c "
+          from src.agent import build_graph, handle_query
+          from src.tools import TOOLS
+          from src.retriever import load_chunks
+          from src import tenant
+          from src.guardrails import mask_pii
+          assert [t.name for t in TOOLS] == ['retrieve_docs', 'check_tenant_state', 'propose_fix']
+          assert len(load_chunks()) == 209
+          assert mask_pii('a@b.example 010-0000-1234')[0] == '[EMAIL] [PHONE]'
+          assert tenant.supported_faults(tenant.compute_checks(tenant.initial_state('S04'))) == {'F6'}
+          r = handle_query('')
+          assert set(r) >= {'answer', 'contexts', 'trace'} and '비어' in r['answer']
+          print('smoke ok')
+          "
+
+      - name: Streamlit 화면 기동 확인
+        run: |
+          docker run -d --name ui -p 8501:8501 -e AWS_DEFAULT_REGION=us-east-1 mini-pjt \
+            streamlit run src/ui/app.py --server.port 8501 --server.address 0.0.0.0 --server.headless true
+          for i in $(seq 1 30); do curl -fs localhost:8501/_stcore/health && break; sleep 2; done
+          curl -fs localhost:8501/_stcore/health
+          docker logs ui | tail -5

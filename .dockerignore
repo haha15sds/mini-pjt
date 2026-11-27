@@ -1,0 +1,23 @@
+# 비밀값·로컬 환경
+.env
+.venv/
+venv/
+.git/
+.github/
+.claude/
+
+# 실행 중 생기는 파일 (컨테이너 안에서 새로 만든다)
+chroma_db/
+*.sqlite
+*.sqlite-*
+*.db
+__pycache__/
+*.pyc
+*.log
+
+# 이미지에 필요 없는 산출물
+.archify/
+docs/
+evaluation/repeat/
+evaluation/refactor_check/
+*.zip

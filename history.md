@@ -736,3 +736,16 @@
 🔧 공개 전 점검: 전체 이력 키·토큰 0건, 작성자 noreply 하나, 회사·개인 정보 없음(010-0000-1234는 가상 번호, 메일은 공식 문서 예시 도메인과 archify 도구 피드백 주소뿐).
 🔧 https://github.com/haha15sds/mini-pjt (public, 빈 저장소 확인) 에 `git push -u origin master:main` → main = 30a99fe, 파일 136개. 비로그인으로 README 조회 200.
 🔧 남은 정리: sds-ax-training/mini-pjt_haha15(옛 9차 버전)과 빈 저장소 mini-pjt_ 처리, 시연 캡처, Google Form 제출.
+
+### 119. 제출 체크리스트 3항목 점검
+
+👤 "1차·2차 자체 평가 보고서(개선폭), 코드 정리·리팩터링·README 완성(트라이앤에러 회고), Docker 재빌드·클린 환경 재현성 검증 점검해주라."
+🔧 ① round1_report.md·round2_report.md 있음, round2 §5에 1차→2차 개선폭 표(통과 +4, faithfulness 0.241→0.734 등) → 충족. ② 리팩터링 완료(30a99fe). README 회고는 2차까지만 있고 3~10차 시행착오(answer_relevancy 실험, 힌트 점검, 불일치, judge 문구, 반복 실행 편차, Confluence 혼입·evidence_note 누설)와 최종 수치가 빠짐. requirements 5개 패키지(fastapi·uvicorn·streamlit·ragas·pandas) 버전 미고정. ③ Dockerfile·.dockerignore 없음. 이 PC에 Docker 없음, WSL 배포판도 없음 → 로컬 Docker 빌드 불가.
+🔧 보완안 제시(합의 대기): README 회고·수치 갱신, 버전 고정, Dockerfile·.dockerignore 추가, GitHub 새 clone + 새 venv로 클린 환경 재현 검증, Docker 빌드는 GitHub Actions에서 검증.
+
+### 120. 과정 요구사항(3-1~3-5, 12개 패턴) 전체 재점검
+
+👤 "과정요구사항 전체 재점검 해줘." (3-1 폴더 구조, 3-2 API, 3-3 SERVICE, 3-4 test_queries.csv, 3-5 README, 빌드 체크리스트 12패턴 원문 제공)
+🔧 충족: API 규약(POST /query·3필드), SERVICE 5절·규칙 5건·성공 기준, CSV 7컬럼·18건·비율(39/22/22/17%), README 템플릿 절 전부, 1·2차 보고서와 개선폭, 패턴 10개 적용(1·2·3·4·6·7·8·10·11·12), 필수 1·3·12.
+🔧 미흡: ① 3-1 예시 파일명 src/agent.py·tools.py·retriever.py가 리팩토링으로 사라짐 ② Dockerfile 없음(3-1 선택이지만 체크리스트 필수 괄호에 Docker), run.sh 없음 ③ CSV id가 P1 형식(규약은 1부터 번호), expected_traits가 기계 판정 코드(fault:F1 등) ④ README 회고 2차까지·개선폭 문장 옛 수치 ⑤ 패턴 11: LangSmith 켜져 있으나 프로젝트 이름이 sds-ax-day3, 근거 캡처 없음 ⑥ requirements 5개 버전 미고정 ⑦ 클린 환경 재현 미검증(리팩토링 후).
+🔧 보완 순서 제안(합의 대기).

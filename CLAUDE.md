@@ -14,6 +14,7 @@
 
 ```
 src/
+├── agent.py · tools.py · retriever.py   과제 규약(3-1) 진입 파일: 코드 없이 도메인 폴더의 것을 다시 내보내기만 한다
 ├── utils/          공통: LLM 클라이언트(Bedrock 모델 ID·대체 프로필), 경로, 메시지 본문 꺼내기
 ├── guardrails/     가드레일 R1~R3: 개인정보·시크릿 마스킹, 인젝션 탐지, 비밀값 요청 거절
 ├── knowledge/      공식 문서 RAG: 문서 수집, 하이브리드 검색(Chroma+BM25+RRF), retrieve_docs 도구, contexts 항목 형식
@@ -38,6 +39,8 @@ src/
 | `api/` | `server.py` | FastAPI 앱 |
 | `ui/` | `app.py` | Streamlit 화면 |
 | `evaluation/` | `run_eval.py` 등 | 평가 실행 코드. **입력(`test_queries.csv`)과 결과(보고서·JSON)는 루트 `evaluation/`에 쓴다** |
+
+- **규약 진입 파일**: `src/agent.py`(그래프·`handle_query`), `src/tools.py`(도구 3개), `src/retriever.py`(RAG)는 과제 산출물 규약이 요구하는 이름이다. 여기에 로직을 쓰지 않고 import 만 둔다. 내부 코드는 이 파일들을 import 하지 않는다(도메인 모듈을 직접 import).
 
 ## 3. 의존 방향
 

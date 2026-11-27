@@ -153,6 +153,7 @@ LLM-as-Judge (positive·edge 11건, judge Claude Sonnet 4.5, 1~5점): 정확성 
 
 `src/` 는 에이전트의 도메인(기능)별 폴더로 나뉜다. 폴더 역할과 파일 배치 규칙은 [CLAUDE.md](CLAUDE.md)에 있다. 명령은 모두 저장소 루트에서 실행한다.
 
+- [src/agent.py](src/agent.py) · [src/tools.py](src/tools.py) · [src/retriever.py](src/retriever.py) — 과제 규약 3-1의 진입 파일. 아래 도메인 모듈을 다시 내보내며, 각 파일 머리말에 실제 위치를 적었다
 - [src/workflow/graph.py:18](src/workflow/graph.py) — 메인 그래프 `build_graph` (노드 6개), [src/workflow/entry.py:58](src/workflow/entry.py) 단일 진입점 `handle_query`
 - [src/diagnosis/analyze.py:10](src/diagnosis/analyze.py) — LCEL 구조화 출력 `analyze_chain`, [src/diagnosis/plan.py:15](src/diagnosis/plan.py) `plan_chain`·`plan_runbook`(원인 검증·근거 재검색)
 - [src/diagnosis/react.py](src/diagnosis/react.py) — ReAct 에이전트 노드와 도구 목록 `TOOLS`, [src/diagnosis/prompts.py](src/diagnosis/prompts.py) 프롬프트, [src/diagnosis/schemas.py](src/diagnosis/schemas.py) 구조화 출력 스키마
