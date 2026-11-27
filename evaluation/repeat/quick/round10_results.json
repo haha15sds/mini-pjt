@@ -1,0 +1,334 @@
+[
+ {
+  "id": "P5",
+  "category": "positive",
+  "scenario": "S05",
+  "semi_blind": true,
+  "expected_fault": "F3",
+  "top_fault": "F3",
+  "passed": true,
+  "checks": [
+   {
+    "rule": "trait fault:F3",
+    "ok": true
+   },
+   {
+    "rule": "trait contexts:>=1",
+    "ok": true
+   }
+  ],
+  "tools_expected": [
+   "check_tenant_state",
+   "retrieve_docs"
+  ],
+  "tools_called": [
+   "check_tenant_state",
+   "propose_fix",
+   "retrieve_docs"
+  ],
+  "tool_match": true,
+  "three_fields": true,
+  "evidence_ok": true,
+  "approval_required": true,
+  "seconds": 27.7,
+  "question_masked": "안녕하세요, 가상상사 IT팀입니다.\nGemini Enterprise에 SharePoint 커넥터를 연결해 사용 중인데, 어제부터 직원들이 검색을 하면 \"권한이 없거나 로그인 정보를 확인할 수 없습니다\"라는 안내가 나오고 SharePoint 문서가 한 건도 결과에 나오지 않습니다. 전 직원이 동일하게 겪고 있으며, 일반 Gemini 답변이나 다른 데이터 소스 검색은 정상입니다.\nSSO 로그인 자체는 문제없이 되고, Google 쪽 워크포스 풀 설정 화면에서 공급자 상태도 활성으로 표시됩니다. 지난주에 Entra 쪽 사용자 동기화 정책을 정리하면서 매핑 관련 설정을 한 번 손본 이력이 있습니다. 커넥터를 삭제 후 재생성해 보았지만 증상은 같았습니다. 확인 부탁드립니다.\n\nIT팀 드림",
+  "answer": "테넌트 상태: WIF google.subject 매핑이 assertion.oid로 설정되어 있고, 전체 사용자의 subject_seen이 UUID 형식으로 기록됨. 문서 ge-sp-overview#12: Data ingestion 모드에서 Google 이메일과 Microsoft 이메일 불일치 시 검색 결과가 반환되지 않음. WIF 매핑을 assertion.email.lowerAscii()로 변경 필요.\n조치:\n- Workforce Identity Federation 풀 설정에서 google.subject 매핑을 assertion.email.lowerAscii()로 변경\n- 변경 후 영향받은 사용자(u01, u02, u03)가 재로그인하여 새 매핑 적용\n이 조치(remap_subject_to_lower_email)는 관리자가 승인(approve)한 뒤에만 적용됩니다.\n근거로 검색한 문서: ge-idp#11, ge-idp#13, ge-sp-overview#12, ge-sp-overview#13, ge-entra-connector#14, ge-sp-config#03, ge-sp-config#02 (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25) 및 가상 테넌트 상태",
+  "contexts": [
+   {
+    "doc_id": "ge-idp#11",
+    "text": "[ge-idp#11] Configure identity provider - Configure Workforce Identity Federation (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n- Configure Workforce Identity Federation with an identity provider (IdP) that supports OIDC or SAML 2.0\n\n#### Configure attribute mapping\n\nAttribute mapping helps you connect your third-party identity information with\nGoogle using Workforce Identity Federation.\n\nWhen configuring attribute mapping in Workforce Identity Federation, consider the\nfollowing:\n\n-\nThe `google.subject` attribute is used for attribute mapping, license\nassignment, and sharing notebooks. We recommend mapping\n`google.subject` to the user's email address in lowercase, as license\nassignment is case sensitive. Don't map `google.subject` to the Microsoft\nEntra ID object ID (GUID), which causes `403` sign-in errors and duplicate\nlicense consumption when licenses are pre-assigned by email.\n\n-\nFor Microsoft Entra ID, tokens omit group IDs when a user belongs to more\nthan 150 groups (SAML) or 200 groups (OIDC). To prevent\n`403 Permission Denied` errors, restrict Microsoft Entra ID group claims to\nGroups assigned to the application or apply a group filter."
+   },
+   {
+    "doc_id": "ge-idp#13",
+    "text": "[ge-idp#13] Configure identity provider - Configure Workforce Identity Federation (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n`google.subject=assertion.attributes['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'][0].lowerAscii()\ngoogle.groups=assertion.attributes['http://schemas.microsoft.com/ws/2008/06/identity/claims/groups']\ngoogle.display_name=assertion.attributes['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname'][0]\n`\n\n-\nOkta with OIDC protocol\n\nThis example uses the email to uniquely identify users.\n\n`google.subject=assertion.email.lowerAscii()\ngoogle.groups=assertion.groups\n`\n\n-\nOkta with SAML protocol\n\nThis example uses the subject assertion of the JWT to uniquely identify\nusers.\n\n`google.subject=assertion.subject.lowerAscii()\ngoogle.groups=assertion.attributes['groups']\n`"
+   },
+   {
+    "doc_id": "ge-sp-overview#12",
+    "text": "[ge-sp-overview#12] Overview - Troubleshooting SharePoint connector search results (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n## Troubleshooting SharePoint connector search results\n\nIf you are experiencing issues with missing documents, incorrect results, or poor search relevance, check the following diagnostic areas:\n\n- Check the People data store: Ensure the People search data store is set up and syncing if you face relevance or entity-matching issues.\n\n- Authentication errors: Persistent authentication errors, such as \"Error when retrieving Graph API access token,\" will prevent searches from functioning. To resolve this, check the Microsoft Entra ID logs for details and then re-authenticate the connection.\n\n- Identity mismatch (data ingestion mode): When using data ingestion mode\nwith Google Identity, verify that each user's Google email address matches\ntheir Microsoft email address. Mismatches prevent Gemini Enterprise\nfrom returning search results.\n\n- Targeted folder searches (.aspx URLs): Searching with full browser URLs that end in `/Forms/AllItems.aspx` executes a search across the whole site, not just the specific folder. Always use absolute folder paths for targeted searches."
+   },
+   {
+    "doc_id": "tenant-state",
+    "text": "[tenant-state] 가상 테넌트 현재 상태(check_tenant_state 결과)\n{\n \"checks\": {\n  \"findings\": [\n   \"google.subject 매핑이 이메일 기반이 아니다(assertion.oid).\",\n   \"u01의 email·upn·subject_seen이 서로 다르다(값이 다름).\",\n   \"u02의 email·upn·subject_seen이 서로 다르다(값이 다름).\",\n   \"u03의 email·upn·subject_seen이 서로 다르다(값이 다름).\"\n  ],\n  \"not_a_problem\": [\n   \"그룹 수가 OIDC 토큰 한도 200개를 넘는 사용자는 없다(최대 35개) — 그룹 클레임 한도 문제는 아니다.\"\n  ],\n  \"reference\": \"권장 구성(data/tenant_baseline.json)과 비교한 결과. 원인 판단은 findings만 근거로 한다\",\n  \"diff_from_reference\": [\n   {\n    \"path\": \"users[u01].subject_seen\",\n    \"reference\": \"kim.a@gasang.example\",\n    \"current\": \"251333c4-2a0d-5598-a525-83e83ad29e18\"\n   },\n   {\n    \"path\": \"users[u02].subject_seen\",\n    \"reference\": \"lee.b@gasang.example\",\n    \"current\": \"3f222e4c-cbb7-5f2e-93c0-e5cceb1d145f\"\n   },\n   {\n    \"path\": \"users[u03].subject_seen\",\n    \"reference\": \"park.c@gasang.example\",\n    \"current\": \"44aa926f-0d5b-5d89-8e95-f9678f444a2c\"\n   },\n   {\n    \"path\": \"wif_mapping.google_subject\",\n    \"reference\": \"assertion.email.lowerAscii()\",\n    \"current\": \"assertion.oid\"\n   }\n  ],\n  \"group_claim_check\": {\n   \"protocol\": \"OIDC\",\n   \"limit\": 200,\n   \"group_claims_filter\": \"groups_assigned_to_application\",\n   \"filter_limits_to_assigned_groups\": true,\n   \"users_over_limit\": []\n  },\n  \"identifier_check\": [\n   {\n    \"user_id\": \"u01\",\n    \"email_upn_subject\": \"값이 다름\",\n    \"email_changed_from_reference\": false,\n    \"has_uppercase\": false\n   },\n   {\n    \"user_id\": \"u02\",\n    \"email_upn_subject\": \"값이 다름\",\n    \"email_changed_from_reference\": false,\n    \"has_uppercase\": false\n   },\n   {\n    \"user_id\": \"u03\",\n    \"email_upn_subject\": \"값이 다름\",\n    \"email_changed_from_reference\": false,\n    \"has_uppercase\": false\n   }\n  ],\n  \"subject_mapping_check\": {\n   \"google_subject\": \"assertion.oid\",\n   \"email_based\": false,\n   \"lowercased\": false,\n   \"uses_object_id\": true\n  },\n  \"sites_check\": {\n   \"permission_mode\": \"Sites.Selected\",\n   \"sites_without_fullcontrol\": []\n  },\n  \"entra_app_check\": {\n   \"admin_consent\": true,\n   \"write_actions_enabled\": false,\n   \"write_scopes_present\": false\n  }\n },\n \"state\": {\n  \"tenant_name\": \"가상상사\",\n  \"connector\": \"Microsoft SharePoint (data ingestion)\",\n  \"instance_uri\": \"https://gasang.sharepoint.example\",\n  \"entra_app\": {\n   \"admin_consent\": true,\n   \"graph_permissions\": [\n    \"GroupMember.Read.All (Application)\",\n    \"User.Read (Delegated)\",\n    \"User.Read.All (Application)\",\n    \"Sites.Selected (Application)\"\n   ],\n   \"sharepoint_permissions\": [\n    \"Sites.Selected (Application)\"\n   ],\n   \"write_actions_enabled\": false,\n   \"write_scopes\": []\n  },\n  \"wif_mapping\": {\n   \"provider\": \"Entra ID (OIDC)\",\n   \"google_subject\": \"assertion.oid\",\n   \"google_groups\": \"assertion.groups\",\n   \"group_claims_filter\": \"groups_assigned_to_application\"\n  },\n  \"sharepoint\": {\n   \"permission_mode\": \"Sites.Selected\",\n   \"sites\": [\n    {\n     \"site_id\": \"site-hr\",\n     \"name\": \"인사팀\",\n     \"selected\": true,\n     \"fullcontrol_granted\": true\n    },\n    {\n     \"site_id\": \"site-sales\",\n     \"name\": \"영업팀\",\n     \"selected\": true,\n     \"fullcontrol_granted\": true\n    },\n    {\n     \"site_id\": \"site-rnd\",\n     \"name\": \"연구소\",\n     \"selected\": true,\n     \"fullcontrol_granted\": true\n    }\n   ]\n  },\n  \"users\": [\n   {\n    \"user_id\": \"u01\",\n    \"upn\": \"kim.a@gasang.example\",\n    \"email\": \"kim.a@gasang.example\",\n    \"subject_seen\": \"251333c4-2a0d-5598-a525-83e83ad29e18\",\n    \"group_count\": 12\n   },\n   {\n    \"user_id\": \"u02\",\n    \"upn\": \"lee.b@gasang.example\",\n    \"email\": \"lee.b@gasang.example\",\n    \"subject_seen\": \"3f222e4c-cbb7-5f2e-93c0-e5cceb1d145f\",\n    \"group_count\": 35\n   },\n   {\n    \"user_id\": \"u03\",\n    \"upn\": \"park.c@gasang.example\",\n    \"email\": \"park.c@gasang.example\",\n    \"subject_seen\": \"44aa926f-0d5b-5d89-8e95-f9678f444a2c\",\n    \"group_count\": 8\n   }\n  ],\n  \"sync_status\": {\n   \"state\": \"succeeded\",\n   \"last_success\": \"2026-11-24T22:00:00Z\"\n  },\n  \"recent_errors\": [\n   \"전체 사용자: 403 PERMISSION_DENIED\",\n   \"라이선스 사용량이 사용자 수의 2배로 표시\"\n  ]\n }\n}"
+   },
+   {
+    "doc_id": "fix:align_user_identifier",
+    "text": "[fix:align_user_identifier] 조치 목록(fix catalog) 항목 - 영향받은 사용자의 식별자(이메일 소문자)를 매핑 값과 맞추고, 필요하면 attribute.as_user_identifier_N으로 추가 식별자를 매핑한다 (대상 장애 F4, 위험도 med). 이 조치는 관리자가 승인(approve)한 뒤에만 적용된다."
+   },
+   {
+    "doc_id": "fix:remap_subject_to_lower_email",
+    "text": "[fix:remap_subject_to_lower_email] 조치 목록(fix catalog) 항목 - WIF 공급자의 google.subject 매핑을 assertion.email.lowerAscii()로 바꾼다 (기존 사용자가 새 사용자로 취급될 수 있어 위험도 높음) (대상 장애 F3, 위험도 high). 이 조치는 관리자가 승인(approve)한 뒤에만 적용된다."
+   },
+   {
+    "doc_id": "ge-sp-overview#13",
+    "text": "[ge-sp-overview#13] Overview - Troubleshooting SharePoint connector search results (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n- Result limits: Be aware that federated searches may have limits on the number of documents returned per query (typically capping around 20 results).\n\n- Citation issues: Intermittent incorrect citations can occur. If persistent, report the issue to support and include your diagnostic tokens.\n\n- Connector-model compatibility: Ensure you are using the latest Gemini model versions. Some older models (for example, 3.x) have known issues resolving tools for SharePoint actions, such as `download_document` within Agent Builder."
+   },
+   {
+    "doc_id": "ge-entra-connector#14",
+    "text": "[ge-entra-connector#14] Connect Microsoft Entra ID - Test the search engine (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n## Test the search engine\n\nAfter configuring your search engine, test its capabilities to verify whether it\nreturns accurate results based on user access.\n\n-\nEnable web app:\n\n- Go to the app integration configurations and toggle to\nEnable the web app.\n\n-\nTest web app:\n\n-\nClick Open next to the web app link and sign in as a user.\n\n-\nVerify that search results are restricted to items accessible by the\nuser."
+   },
+   {
+    "doc_id": "ge-sp-config#03",
+    "text": "[ge-sp-config#03] Microsoft SharePoint configuration - Register Microsoft Entra app for Microsoft SharePoint connector (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n### Register Microsoft Entra app for Microsoft SharePoint connector\n\nBefore creating the Microsoft SharePoint connector in Gemini Enterprise, register a Microsoft Entra application to enable secure access.\n\nTo register Gemini Enterprise as an OAuth 2.0 application in\nEntra, do the following:\n\n- Navigate to Microsoft Entra admin center.\n\n- In the navigation menu, expand the Entra ID and select\nApp registrations.\n\n- On the App registrations page, click addNew registration.\n\n-\nOn the Register an application page, do the following:\n\n- In the Name field, enter a name for your app.\n\n- In the Supported account types section, select Accounts in this organizational directory only (which may also be labeled Single tenant only or Single tenant only - MSFT depending on your tenant setup). This restricts access to users and guests within your own tenant or directory.\n\n- In the Redirect URI section, do the following:\n\n- In the platform list, select `Web`.\n\n- In the redirect URI field, enter `https://vertexaisearch.cloud.google.com/console/oauth/sharepoint_oauth.html`.\n\n- Click Register. Microsoft Entra creates your app and displays the overview page of your app."
+   },
+   {
+    "doc_id": "ge-sp-config#02",
+    "text": "[ge-sp-config#02] Microsoft SharePoint configuration - Set up authentication and permissions (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n## Set up authentication and permissions\n\nYou need to set up authentication and permissions in Microsoft Entra admin center. This is crucial for allowing the connector to access and synchronize data."
+   }
+  ],
+  "blob_has_raw": [],
+  "ragas": {
+   "faithfulness": 0.818,
+   "answer_relevancy": 0.32,
+   "llm_context_precision_with_reference": 0.917,
+   "context_recall": 1.0
+  }
+ },
+ {
+  "id": "P6",
+  "category": "positive",
+  "scenario": "S06",
+  "semi_blind": true,
+  "expected_fault": "F5",
+  "top_fault": "F5",
+  "passed": true,
+  "checks": [
+   {
+    "rule": "trait fault:F5",
+    "ok": true
+   },
+   {
+    "rule": "trait contexts:>=1",
+    "ok": true
+   }
+  ],
+  "tools_expected": [
+   "check_tenant_state",
+   "retrieve_docs"
+  ],
+  "tools_called": [
+   "check_tenant_state",
+   "propose_fix",
+   "retrieve_docs"
+  ],
+  "tool_match": true,
+  "three_fields": true,
+  "evidence_ok": true,
+  "approval_required": true,
+  "seconds": 26.9,
+  "question_masked": "안녕하세요, 가상상사 IT 운영팀입니다.\nGemini Enterprise SharePoint 검색에서 일부 임원과 프로젝트 겸직자 분들만 문서가 거의 보이지 않거나 결과가 비어 있다고 신고하셨습니다. 일반 직원 분들은 정상적으로 검색됩니다. 문제가 있는 분들은 공통적으로 여러 부서·프로젝트 보안 그룹에 소속되어 있는데, 소속 그룹이 많은 순서대로 증상이 심한 경향이 있습니다.\n최근 몇 달 사이 조직 개편으로 보안 그룹이 크게 늘었고, 그 이후부터 시작된 것으로 보입니다. 해당 사용자들의 재로그인과 캐시 삭제는 효과가 없었습니다. 원인 확인 부탁드립니다.\n\nIT팀 드림",
+  "answer": "테넌트 상태: u02는 230개 그룹에 소속되어 OIDC 토큰 한도 200개를 초과하며, group_claims_filter가 all_security_groups로 설정되어 있고, recent_errors에 '토큰에 groups 클레임 없음'이 기록됨. 문서: Entra 앱의 그룹 클레임을 '애플리케이션에 할당된 그룹'으로 제한해야 함.\n조치:\n- Entra 앱의 그룹 클레임을 '애플리케이션에 할당된 그룹'으로 제한한다\n- SharePoint 사이트 권한 관리에 사용되는 보안 그룹을 Gemini Enterprise 앱에 할당한다\n이 조치(restrict_group_claims)는 관리자가 승인(approve)한 뒤에만 적용됩니다.\n근거로 검색한 문서: ge-idp#11, ge-idp#13, ge-sp-datastore#16, ge-sp-overview#12, ge-idp#06, ge-sp-overview#13, ge-sp-config#01 (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25) 및 가상 테넌트 상태",
+  "contexts": [
+   {
+    "doc_id": "ge-idp#11",
+    "text": "[ge-idp#11] Configure identity provider - Configure Workforce Identity Federation (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n- Configure Workforce Identity Federation with an identity provider (IdP) that supports OIDC or SAML 2.0\n\n#### Configure attribute mapping\n\nAttribute mapping helps you connect your third-party identity information with\nGoogle using Workforce Identity Federation.\n\nWhen configuring attribute mapping in Workforce Identity Federation, consider the\nfollowing:\n\n-\nThe `google.subject` attribute is used for attribute mapping, license\nassignment, and sharing notebooks. We recommend mapping\n`google.subject` to the user's email address in lowercase, as license\nassignment is case sensitive. Don't map `google.subject` to the Microsoft\nEntra ID object ID (GUID), which causes `403` sign-in errors and duplicate\nlicense consumption when licenses are pre-assigned by email.\n\n-\nFor Microsoft Entra ID, tokens omit group IDs when a user belongs to more\nthan 150 groups (SAML) or 200 groups (OIDC). To prevent\n`403 Permission Denied` errors, restrict Microsoft Entra ID group claims to\nGroups assigned to the application or apply a group filter."
+   },
+   {
+    "doc_id": "ge-idp#13",
+    "text": "[ge-idp#13] Configure identity provider - Configure Workforce Identity Federation (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n`google.subject=assertion.attributes['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'][0].lowerAscii()\ngoogle.groups=assertion.attributes['http://schemas.microsoft.com/ws/2008/06/identity/claims/groups']\ngoogle.display_name=assertion.attributes['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname'][0]\n`\n\n-\nOkta with OIDC protocol\n\nThis example uses the email to uniquely identify users.\n\n`google.subject=assertion.email.lowerAscii()\ngoogle.groups=assertion.groups\n`\n\n-\nOkta with SAML protocol\n\nThis example uses the subject assertion of the JWT to uniquely identify\nusers.\n\n`google.subject=assertion.subject.lowerAscii()\ngoogle.groups=assertion.attributes['groups']\n`"
+   },
+   {
+    "doc_id": "tenant-state",
+    "text": "[tenant-state] 가상 테넌트 현재 상태(check_tenant_state 결과)\n{\n \"checks\": {\n  \"findings\": [\n   \"u02의 그룹 수가 OIDC 토큰 한도 200개를 넘는다(그룹 클레임이 빠질 수 있음).\"\n  ],\n  \"not_a_problem\": [],\n  \"reference\": \"권장 구성(data/tenant_baseline.json)과 비교한 결과. 원인 판단은 findings만 근거로 한다\",\n  \"diff_from_reference\": [\n   {\n    \"path\": \"users[u02].group_count\",\n    \"reference\": 35,\n    \"current\": 230\n   },\n   {\n    \"path\": \"wif_mapping.group_claims_filter\",\n    \"reference\": \"groups_assigned_to_application\",\n    \"current\": \"all_security_groups\"\n   }\n  ],\n  \"group_claim_check\": {\n   \"protocol\": \"OIDC\",\n   \"limit\": 200,\n   \"group_claims_filter\": \"all_security_groups\",\n   \"filter_limits_to_assigned_groups\": false,\n   \"users_over_limit\": [\n    {\n     \"user_id\": \"u02\",\n     \"group_count\": 230\n    }\n   ]\n  },\n  \"identifier_check\": [\n   {\n    \"user_id\": \"u01\",\n    \"email_upn_subject\": \"일치\",\n    \"email_changed_from_reference\": false,\n    \"has_uppercase\": false\n   },\n   {\n    \"user_id\": \"u02\",\n    \"email_upn_subject\": \"일치\",\n    \"email_changed_from_reference\": false,\n    \"has_uppercase\": false\n   },\n   {\n    \"user_id\": \"u03\",\n    \"email_upn_subject\": \"일치\",\n    \"email_changed_from_reference\": false,\n    \"has_uppercase\": false\n   }\n  ],\n  \"subject_mapping_check\": {\n   \"google_subject\": \"assertion.email.lowerAscii()\",\n   \"email_based\": true,\n   \"lowercased\": true,\n   \"uses_object_id\": false\n  },\n  \"sites_check\": {\n   \"permission_mode\": \"Sites.Selected\",\n   \"sites_without_fullcontrol\": []\n  },\n  \"entra_app_check\": {\n   \"admin_consent\": true,\n   \"write_actions_enabled\": false,\n   \"write_scopes_present\": false\n  }\n },\n \"state\": {\n  \"tenant_name\": \"가상상사\",\n  \"connector\": \"Microsoft SharePoint (data ingestion)\",\n  \"instance_uri\": \"https://gasang.sharepoint.example\",\n  \"entra_app\": {\n   \"admin_consent\": true,\n   \"graph_permissions\": [\n    \"GroupMember.Read.All (Application)\",\n    \"User.Read (Delegated)\",\n    \"User.Read.All (Application)\",\n    \"Sites.Selected (Application)\"\n   ],\n   \"sharepoint_permissions\": [\n    \"Sites.Selected (Application)\"\n   ],\n   \"write_actions_enabled\": false,\n   \"write_scopes\": []\n  },\n  \"wif_mapping\": {\n   \"provider\": \"Entra ID (OIDC)\",\n   \"google_subject\": \"assertion.email.lowerAscii()\",\n   \"google_groups\": \"assertion.groups\",\n   \"group_claims_filter\": \"all_security_groups\"\n  },\n  \"sharepoint\": {\n   \"permission_mode\": \"Sites.Selected\",\n   \"sites\": [\n    {\n     \"site_id\": \"site-hr\",\n     \"name\": \"인사팀\",\n     \"selected\": true,\n     \"fullcontrol_granted\": true\n    },\n    {\n     \"site_id\": \"site-sales\",\n     \"name\": \"영업팀\",\n     \"selected\": true,\n     \"fullcontrol_granted\": true\n    },\n    {\n     \"site_id\": \"site-rnd\",\n     \"name\": \"연구소\",\n     \"selected\": true,\n     \"fullcontrol_granted\": true\n    }\n   ]\n  },\n  \"users\": [\n   {\n    \"user_id\": \"u01\",\n    \"upn\": \"kim.a@gasang.example\",\n    \"email\": \"kim.a@gasang.example\",\n    \"subject_seen\": \"kim.a@gasang.example\",\n    \"group_count\": 12\n   },\n   {\n    \"user_id\": \"u02\",\n    \"upn\": \"lee.b@gasang.example\",\n    \"email\": \"lee.b@gasang.example\",\n    \"subject_seen\": \"lee.b@gasang.example\",\n    \"group_count\": 230\n   },\n   {\n    \"user_id\": \"u03\",\n    \"upn\": \"park.c@gasang.example\",\n    \"email\": \"park.c@gasang.example\",\n    \"subject_seen\": \"park.c@gasang.example\",\n    \"group_count\": 8\n   }\n  ],\n  \"sync_status\": {\n   \"state\": \"succeeded\",\n   \"last_success\": \"2026-11-24T22:00:00Z\"\n  },\n  \"recent_errors\": [\n   \"u02: 403 Permission Denied\",\n   \"u02: 토큰에 groups 클레임 없음\"\n  ]\n }\n}"
+   },
+   {
+    "doc_id": "fix:restrict_group_claims",
+    "text": "[fix:restrict_group_claims] 조치 목록(fix catalog) 항목 - Entra 앱의 그룹 클레임을 '애플리케이션에 할당된 그룹'으로 제한한다 (대상 장애 F5, 위험도 med). 이 조치는 관리자가 승인(approve)한 뒤에만 적용된다."
+   },
+   {
+    "doc_id": "ge-sp-datastore#16",
+    "text": "[ge-sp-datastore#16] Set up a Microsoft SharePoint data store - Query execution (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n### Query execution\n\nAfter you authorize Microsoft SharePoint and send a search query to Gemini Enterprise:\n\n- Gemini Enterprise sends your search query directly to the Microsoft API.\n\n- Gemini Enterprise blends the results with those from other connected data sources and displays a comprehensive search result."
+   },
+   {
+    "doc_id": "ge-sp-overview#12",
+    "text": "[ge-sp-overview#12] Overview - Troubleshooting SharePoint connector search results (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n## Troubleshooting SharePoint connector search results\n\nIf you are experiencing issues with missing documents, incorrect results, or poor search relevance, check the following diagnostic areas:\n\n- Check the People data store: Ensure the People search data store is set up and syncing if you face relevance or entity-matching issues.\n\n- Authentication errors: Persistent authentication errors, such as \"Error when retrieving Graph API access token,\" will prevent searches from functioning. To resolve this, check the Microsoft Entra ID logs for details and then re-authenticate the connection.\n\n- Identity mismatch (data ingestion mode): When using data ingestion mode\nwith Google Identity, verify that each user's Google email address matches\ntheir Microsoft email address. Mismatches prevent Gemini Enterprise\nfrom returning search results.\n\n- Targeted folder searches (.aspx URLs): Searching with full browser URLs that end in `/Forms/AllItems.aspx` executes a search across the whole site, not just the specific folder. Always use absolute folder paths for targeted searches."
+   },
+   {
+    "doc_id": "ge-idp#06",
+    "text": "[ge-idp#06] Configure identity provider - Core principle: No privilege escalation (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n### Core principle: No privilege escalation\n\nA user interacting with Gemini Enterprise can only view and ground\nresponses on information that they are already authorized to access directly\nin the source Google Workspace application. Gemini Enterprise never\nbypasses source system access controls or grants additional permissions.\n\n-\nPeople from Google Workspace (Directory): User visibility in search\nand grounding results respects your organization's Directory visibility\nsettings. For example, if a user's visibility in the Google Workspace\nDirectory is limited to their own department or organizational unit, they\nare only able to find colleagues within that department using\nGemini Enterprise. They can't view profiles of employees in restricted\ndepartments.\n\n-\nGoogle Groups: Content discovery and grounding adhere to group\nmembership and access settings. A user can only search and view content\nfrom Google Groups that they are a member of and have permission to view.\nNon-members can't discover or view discussions from private groups through\nGemini Enterprise."
+   },
+   {
+    "doc_id": "ge-sp-overview#13",
+    "text": "[ge-sp-overview#13] Overview - Troubleshooting SharePoint connector search results (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n- Result limits: Be aware that federated searches may have limits on the number of documents returned per query (typically capping around 20 results).\n\n- Citation issues: Intermittent incorrect citations can occur. If persistent, report the issue to support and include your diagnostic tokens.\n\n- Connector-model compatibility: Ensure you are using the latest Gemini model versions. Some older models (for example, 3.x) have known issues resolving tools for SharePoint actions, such as `download_document` within Agent Builder."
+   },
+   {
+    "doc_id": "ge-sp-config#01",
+    "text": "[ge-sp-config#01] Microsoft SharePoint configuration - Microsoft SharePoint configuration (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\nTo successfully connect Gemini Enterprise with Microsoft SharePoint, you must complete the following configuration steps."
+   }
+  ],
+  "blob_has_raw": [],
+  "ragas": {
+   "faithfulness": 0.923,
+   "answer_relevancy": 0.154,
+   "llm_context_precision_with_reference": 0.833,
+   "context_recall": 1.0
+  }
+ },
+ {
+  "id": "E1",
+  "category": "edge",
+  "scenario": "S08",
+  "semi_blind": false,
+  "expected_fault": "F6",
+  "top_fault": "F6",
+  "passed": true,
+  "checks": [
+   {
+    "rule": "trait fault:F6",
+    "ok": true
+   },
+   {
+    "rule": "trait contexts:>=1",
+    "ok": true
+   }
+  ],
+  "tools_expected": [
+   "check_tenant_state",
+   "retrieve_docs"
+  ],
+  "tools_called": [
+   "check_tenant_state",
+   "propose_fix",
+   "retrieve_docs"
+  ],
+  "tool_match": true,
+  "three_fields": true,
+  "evidence_ok": true,
+  "approval_required": true,
+  "seconds": 26.8,
+  "question_masked": "안녕하세요, 가상상사 IT팀입니다.\n영업팀 사이트 문서가 Gemini 검색에 전혀 나오지 않습니다. 그리고 영업본부장님은 다른 사이트 문서도 거의 안 보인다고 하십니다. 본부장님은 겸직이 많아 보안 그룹에 많이 속해 계십니다. 두 문제가 같은 원인인지도 궁금합니다.\n\nIT팀 드림",
+  "answer": "테넌트 상태: site-sales는 fullcontrol_granted가 false이고 크롤링 중 403 Forbidden 발생, u02는 그룹 수 230개로 OIDC 한도 200개를 초과하여 403 Permission Denied 발생. 문서: Sites.Selected 모드에서는 각 사이트에 fullcontrol 권한 부여 필요, 그룹 클레임을 애플리케이션에 할당된 그룹으로 제한 필요.\n조치:\n- Sites.Selected 대상 사이트에 앱의 fullcontrol 권한을 부여한다 (PnP PowerShell 또는 Graph)\n- Entra 앱의 그룹 클레임을 '애플리케이션에 할당된 그룹'으로 제한한다\n이 조치(grant_site_fullcontrol)는 관리자가 승인(approve)한 뒤에만 적용됩니다.\n근거로 검색한 문서: ge-sp-config#11, ge-sp-config#13, ge-entra-connector#16, ge-access-control#52, ge-sp-overview#12, ge-sp-overview#01, ge-sp-datastore#16, ge-sp-config#01, ge-sp-overview#13 (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25) 및 가상 테넌트 상태",
+  "contexts": [
+   {
+    "doc_id": "ge-sp-config#11",
+    "text": "[ge-sp-config#11] Microsoft SharePoint configuration - Configure Microsoft API permissions (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n| Option 2: `Sites.Selected`\n| Delegated\n| Allows the connector to access a subset of site collections with a signed-in user. The specific site collections and the permissions granted can be configured in SharePoint Online.\n\nIf you enable Actions for either the Federated search or Data ingestion connection mode, also select the following permissions:\n\n| Permission\n| Type\n| Description\n\n| `AllSites.Write`\n| Delegated\n| Allows the connector to create, read, update, delete, upload, and download documents and list items in all site collections on behalf of the signed-in user.\n\n-\nClick Add Permissions.\n\nNote:\nWhen you use `Sites.Selected`, you must\ngrant\n`fullcontrol` permission to the selected\nsites. Additionally, for this permission to take effect, you must do at least one of the\nfollowing when creating the SharePoint data store in Gemini Enterprise:\n\n-\nUse a specific site URL as your SharePoint connector Instance URI,\nfor example,\n`https://example.sharepoint.com/sites/sample-site`.\n\n-\nProvide precise `siteName` filters when setting up the\nGemini Enterprise data store."
+   },
+   {
+    "doc_id": "ge-sp-config#13",
+    "text": "[ge-sp-config#13] Microsoft SharePoint configuration - Grant `fullcontrol` permission to selected sites (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n### Grant `fullcontrol` permission to selected sites\n\nIf you choose the `Sites.Selected` option to grant control over selected sites\nin Microsoft Graph, you must grant the `fullcontrol` permission to\nthe Gemini Enterprise application. You can do so using one of\nthe following methods:\n\n- PowerShell\n\n- Microsoft Graph"
+   },
+   {
+    "doc_id": "ge-entra-connector#16",
+    "text": "[ge-entra-connector#16] Connect Microsoft Entra ID - Configure the workforce pool for non-Google IdP without SSO (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n## Configure the workforce pool for non-Google IdP without SSO\n\n-\nIf your employees use a non-Google IdP, lack SSO with Google,\nor are not Google Workspace customers, set up a workforce pool as\ndescribed in Configure access controls for custom data\nsources to enable the employee search.\n\nThe workforce pool lets you to manage and authenticate users from external\nidentity providers, such as Azure or Okta, within Google Cloud console.\n\n-\nTo configure your workforce pool and enable the web app for seamless user\naccess, do the following:\n\n-\nCreate a workforce identity pool\nat the organization level in Google Cloud in the `global` location\nby following the appropriate setup manual:\n\n- Azure OIDC setup\n\n- Azure SAML setup\n\n- Okta & OIDC setup\n\n- Okta & SAML setup\n\n-\nIn Gemini Enterprise, navigate to Settings >\nAuthentication. Select the region where you created your app\n(`global`, `us`, or `eu`), and configure the global workforce pool."
+   },
+   {
+    "doc_id": "ge-access-control#52",
+    "text": "[ge-access-control#52] IAM roles and permissions - Troubleshoot 401 and 403 sign-in errors (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n## Troubleshoot 401 and 403 sign-in errors\n\nThe following table lists common `401` and `403` sign-in errors and how to\nresolve them:\n\n| Error\n| Resolution\n\n|\n`401: Request had invalid authentication credentials`\n\n|\nSynchronize your device clock with an NTP server (even a 1-minute clock\nskew invalidates authentication tokens), clear your browser cookies, and\nretry in an incognito window.\n\n|\n`403: Forbidden / Permission Denied`\n\n|\nVerify the following in order:\n\n-\nThe user, federated `principal://`, or\n`principalSet://` identifier (not\n`user:EMAIL`) has the\n`roles/discoveryengine.agentspaceUser` or\n`roles/discoveryengine.user` role and an active license.\n\n-\nThird-party IdP group claims are within token limits. For example,\nMicrosoft Entra ID limits claims to 150 groups for SAML or 200\ngroups for OIDC. For more information, see Configure\nWorkforce Identity Federation with Microsoft Entra ID and a large\nnumber of groups and Configure\nattribute mapping.\n\n-\nGemini Enterprise is turned on for the user's organizational unit in\nthe Google Workspace Admin console.\n\n|\n`403: WidgetService.LookupWidgetConfig`\n(`The caller does not have permission`)"
+   },
+   {
+    "doc_id": "tenant-state",
+    "text": "[tenant-state] 가상 테넌트 현재 상태(check_tenant_state 결과)\n{\n \"checks\": {\n  \"findings\": [\n   \"u02의 그룹 수가 OIDC 토큰 한도 200개를 넘는다(그룹 클레임이 빠질 수 있음).\",\n   \"Sites.Selected 대상 사이트 중 fullcontrol이 없는 곳: site-sales.\"\n  ],\n  \"not_a_problem\": [],\n  \"reference\": \"권장 구성(data/tenant_baseline.json)과 비교한 결과. 원인 판단은 findings만 근거로 한다\",\n  \"diff_from_reference\": [\n   {\n    \"path\": \"sharepoint.sites[site-sales].fullcontrol_granted\",\n    \"reference\": true,\n    \"current\": false\n   },\n   {\n    \"path\": \"users[u02].group_count\",\n    \"reference\": 35,\n    \"current\": 230\n   },\n   {\n    \"path\": \"wif_mapping.group_claims_filter\",\n    \"reference\": \"groups_assigned_to_application\",\n    \"current\": \"all_security_groups\"\n   }\n  ],\n  \"group_claim_check\": {\n   \"protocol\": \"OIDC\",\n   \"limit\": 200,\n   \"group_claims_filter\": \"all_security_groups\",\n   \"filter_limits_to_assigned_groups\": false,\n   \"users_over_limit\": [\n    {\n     \"user_id\": \"u02\",\n     \"group_count\": 230\n    }\n   ]\n  },\n  \"identifier_check\": [\n   {\n    \"user_id\": \"u01\",\n    \"email_upn_subject\": \"일치\",\n    \"email_changed_from_reference\": false,\n    \"has_uppercase\": false\n   },\n   {\n    \"user_id\": \"u02\",\n    \"email_upn_subject\": \"일치\",\n    \"email_changed_from_reference\": false,\n    \"has_uppercase\": false\n   },\n   {\n    \"user_id\": \"u03\",\n    \"email_upn_subject\": \"일치\",\n    \"email_changed_from_reference\": false,\n    \"has_uppercase\": false\n   }\n  ],\n  \"subject_mapping_check\": {\n   \"google_subject\": \"assertion.email.lowerAscii()\",\n   \"email_based\": true,\n   \"lowercased\": true,\n   \"uses_object_id\": false\n  },\n  \"sites_check\": {\n   \"permission_mode\": \"Sites.Selected\",\n   \"sites_without_fullcontrol\": [\n    \"site-sales\"\n   ]\n  },\n  \"entra_app_check\": {\n   \"admin_consent\": true,\n   \"write_actions_enabled\": false,\n   \"write_scopes_present\": false\n  }\n },\n \"state\": {\n  \"tenant_name\": \"가상상사\",\n  \"connector\": \"Microsoft SharePoint (data ingestion)\",\n  \"instance_uri\": \"https://gasang.sharepoint.example\",\n  \"entra_app\": {\n   \"admin_consent\": true,\n   \"graph_permissions\": [\n    \"GroupMember.Read.All (Application)\",\n    \"User.Read (Delegated)\",\n    \"User.Read.All (Application)\",\n    \"Sites.Selected (Application)\"\n   ],\n   \"sharepoint_permissions\": [\n    \"Sites.Selected (Application)\"\n   ],\n   \"write_actions_enabled\": false,\n   \"write_scopes\": []\n  },\n  \"wif_mapping\": {\n   \"provider\": \"Entra ID (OIDC)\",\n   \"google_subject\": \"assertion.email.lowerAscii()\",\n   \"google_groups\": \"assertion.groups\",\n   \"group_claims_filter\": \"all_security_groups\"\n  },\n  \"sharepoint\": {\n   \"permission_mode\": \"Sites.Selected\",\n   \"sites\": [\n    {\n     \"site_id\": \"site-hr\",\n     \"name\": \"인사팀\",\n     \"selected\": true,\n     \"fullcontrol_granted\": true\n    },\n    {\n     \"site_id\": \"site-sales\",\n     \"name\": \"영업팀\",\n     \"selected\": true,\n     \"fullcontrol_granted\": false\n    },\n    {\n     \"site_id\": \"site-rnd\",\n     \"name\": \"연구소\",\n     \"selected\": true,\n     \"fullcontrol_granted\": true\n    }\n   ]\n  },\n  \"users\": [\n   {\n    \"user_id\": \"u01\",\n    \"upn\": \"kim.a@gasang.example\",\n    \"email\": \"kim.a@gasang.example\",\n    \"subject_seen\": \"kim.a@gasang.example\",\n    \"group_count\": 12\n   },\n   {\n    \"user_id\": \"u02\",\n    \"upn\": \"lee.b@gasang.example\",\n    \"email\": \"lee.b@gasang.example\",\n    \"subject_seen\": \"lee.b@gasang.example\",\n    \"group_count\": 230\n   },\n   {\n    \"user_id\": \"u03\",\n    \"upn\": \"park.c@gasang.example\",\n    \"email\": \"park.c@gasang.example\",\n    \"subject_seen\": \"park.c@gasang.example\",\n    \"group_count\": 8\n   }\n  ],\n  \"sync_status\": {\n   \"state\": \"succeeded\",\n   \"last_success\": \"2026-11-24T22:00:00Z\"\n  },\n  \"recent_errors\": [\n   \"site-sales: 크롤링 중 403 Forbidden\",\n   \"u02: 403 Permission Denied\"\n  ]\n }\n}"
+   },
+   {
+    "doc_id": "fix:grant_site_fullcontrol",
+    "text": "[fix:grant_site_fullcontrol] 조치 목록(fix catalog) 항목 - Sites.Selected 대상 사이트에 앱의 fullcontrol 권한을 부여한다 (PnP PowerShell 또는 Graph) (대상 장애 F6, 위험도 med). 이 조치는 관리자가 승인(approve)한 뒤에만 적용된다."
+   },
+   {
+    "doc_id": "fix:restrict_group_claims",
+    "text": "[fix:restrict_group_claims] 조치 목록(fix catalog) 항목 - Entra 앱의 그룹 클레임을 '애플리케이션에 할당된 그룹'으로 제한한다 (대상 장애 F5, 위험도 med). 이 조치는 관리자가 승인(approve)한 뒤에만 적용된다."
+   },
+   {
+    "doc_id": "ge-sp-overview#12",
+    "text": "[ge-sp-overview#12] Overview - Troubleshooting SharePoint connector search results (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n## Troubleshooting SharePoint connector search results\n\nIf you are experiencing issues with missing documents, incorrect results, or poor search relevance, check the following diagnostic areas:\n\n- Check the People data store: Ensure the People search data store is set up and syncing if you face relevance or entity-matching issues.\n\n- Authentication errors: Persistent authentication errors, such as \"Error when retrieving Graph API access token,\" will prevent searches from functioning. To resolve this, check the Microsoft Entra ID logs for details and then re-authenticate the connection.\n\n- Identity mismatch (data ingestion mode): When using data ingestion mode\nwith Google Identity, verify that each user's Google email address matches\ntheir Microsoft email address. Mismatches prevent Gemini Enterprise\nfrom returning search results.\n\n- Targeted folder searches (.aspx URLs): Searching with full browser URLs that end in `/Forms/AllItems.aspx` executes a search across the whole site, not just the specific folder. Always use absolute folder paths for targeted searches."
+   },
+   {
+    "doc_id": "ge-sp-overview#01",
+    "text": "[ge-sp-overview#01] Overview - Overview (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\nThe Microsoft SharePoint data store for Gemini Enterprise lets you search and perform actions on your Microsoft SharePoint Online data, including documents, lists, and sites.\n\nNote: When using federated search or federated connectors, your query string is sent to all enabled third-party search backends. The query string sent to a third-party system might contain parts of the data in your search request and conversation history. The third-party system can link the query with your identity. Once data is in the third-party system, it is subject to that system's Terms of Service and privacy policies, not Google Cloud's Terms of Service."
+   },
+   {
+    "doc_id": "ge-sp-datastore#16",
+    "text": "[ge-sp-datastore#16] Set up a Microsoft SharePoint data store - Query execution (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n### Query execution\n\nAfter you authorize Microsoft SharePoint and send a search query to Gemini Enterprise:\n\n- Gemini Enterprise sends your search query directly to the Microsoft API.\n\n- Gemini Enterprise blends the results with those from other connected data sources and displays a comprehensive search result."
+   },
+   {
+    "doc_id": "ge-sp-config#01",
+    "text": "[ge-sp-config#01] Microsoft SharePoint configuration - Microsoft SharePoint configuration (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\nTo successfully connect Gemini Enterprise with Microsoft SharePoint, you must complete the following configuration steps."
+   },
+   {
+    "doc_id": "ge-sp-overview#13",
+    "text": "[ge-sp-overview#13] Overview - Troubleshooting SharePoint connector search results (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n- Result limits: Be aware that federated searches may have limits on the number of documents returned per query (typically capping around 20 results).\n\n- Citation issues: Intermittent incorrect citations can occur. If persistent, report the issue to support and include your diagnostic tokens.\n\n- Connector-model compatibility: Ensure you are using the latest Gemini model versions. Some older models (for example, 3.x) have known issues resolving tools for SharePoint actions, such as `download_document` within Agent Builder."
+   }
+  ],
+  "blob_has_raw": [],
+  "ragas": {
+   "faithfulness": 0.75,
+   "answer_relevancy": 0.183,
+   "llm_context_precision_with_reference": 0.867,
+   "context_recall": 1.0
+  }
+ },
+ {
+  "id": "E4",
+  "category": "edge",
+  "scenario": "S05",
+  "semi_blind": true,
+  "expected_fault": "F3",
+  "top_fault": "F3",
+  "passed": true,
+  "checks": [
+   {
+    "rule": "trait fault:F3",
+    "ok": true
+   },
+   {
+    "rule": "trait contexts:>=1",
+    "ok": true
+   }
+  ],
+  "tools_expected": [
+   "check_tenant_state",
+   "retrieve_docs"
+  ],
+  "tools_called": [
+   "check_tenant_state",
+   "propose_fix",
+   "retrieve_docs"
+  ],
+  "tool_match": true,
+  "three_fields": true,
+  "evidence_ok": true,
+  "approval_required": true,
+  "seconds": 23.2,
+  "question_masked": "안녕하세요, 가상상사 IT팀입니다.\nGemini Enterprise에서 SharePoint 검색 시 사용자 화면에 \"Access denied: principal could not be resolved\" 라는 문구가 뜨고, 로그에는 \"PERMISSION_DENIED (403)\"가 반복해서 남습니다. 로그인(SSO) 자체는 성공하는데 검색 결과가 empty로 나와서 문의드립니다.\n얼마 전 Entra 쪽에서 federation 관련 설정을 변경한 뒤부터 모든 사용자에게서 동일하게 발생하고 있습니다. 브라우저를 바꿔도, 계정을 바꿔도 같습니다. 원인을 알려주시면 감사하겠습니다.\n\nIT팀 드림",
+  "answer": "테넌트 상태: wif_mapping.google_subject가 assertion.oid로 설정되어 있고, 모든 사용자(u01, u02, u03)의 subject_seen이 GUID 형식이다. 문서: google.subject를 이메일 소문자로 매핑해야 하며, 객체 ID로 매핑하면 403 오류와 중복 라이선스 소비가 발생한다.\n조치:\n- Workforce Identity Federation 공급자의 속성 매핑에서 google.subject를 assertion.email.lowerAscii()로 변경한다\n이 조치(remap_subject_to_lower_email)는 관리자가 승인(approve)한 뒤에만 적용됩니다.\n근거로 검색한 문서: ge-idp#13, ge-idp#11, ge-access-control#52, ge-sp-overview#05, ge-sp-config#18, ge-idp#28 (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25) 및 가상 테넌트 상태",
+  "contexts": [
+   {
+    "doc_id": "ge-idp#13",
+    "text": "[ge-idp#13] Configure identity provider - Configure Workforce Identity Federation (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n`google.subject=assertion.attributes['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'][0].lowerAscii()\ngoogle.groups=assertion.attributes['http://schemas.microsoft.com/ws/2008/06/identity/claims/groups']\ngoogle.display_name=assertion.attributes['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname'][0]\n`\n\n-\nOkta with OIDC protocol\n\nThis example uses the email to uniquely identify users.\n\n`google.subject=assertion.email.lowerAscii()\ngoogle.groups=assertion.groups\n`\n\n-\nOkta with SAML protocol\n\nThis example uses the subject assertion of the JWT to uniquely identify\nusers.\n\n`google.subject=assertion.subject.lowerAscii()\ngoogle.groups=assertion.attributes['groups']\n`"
+   },
+   {
+    "doc_id": "ge-idp#11",
+    "text": "[ge-idp#11] Configure identity provider - Configure Workforce Identity Federation (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n- Configure Workforce Identity Federation with an identity provider (IdP) that supports OIDC or SAML 2.0\n\n#### Configure attribute mapping\n\nAttribute mapping helps you connect your third-party identity information with\nGoogle using Workforce Identity Federation.\n\nWhen configuring attribute mapping in Workforce Identity Federation, consider the\nfollowing:\n\n-\nThe `google.subject` attribute is used for attribute mapping, license\nassignment, and sharing notebooks. We recommend mapping\n`google.subject` to the user's email address in lowercase, as license\nassignment is case sensitive. Don't map `google.subject` to the Microsoft\nEntra ID object ID (GUID), which causes `403` sign-in errors and duplicate\nlicense consumption when licenses are pre-assigned by email.\n\n-\nFor Microsoft Entra ID, tokens omit group IDs when a user belongs to more\nthan 150 groups (SAML) or 200 groups (OIDC). To prevent\n`403 Permission Denied` errors, restrict Microsoft Entra ID group claims to\nGroups assigned to the application or apply a group filter."
+   },
+   {
+    "doc_id": "tenant-state",
+    "text": "[tenant-state] 가상 테넌트 현재 상태(check_tenant_state 결과)\n{\n \"checks\": {\n  \"findings\": [\n   \"google.subject 매핑이 이메일 기반이 아니다(assertion.oid).\",\n   \"u01의 email·upn·subject_seen이 서로 다르다(값이 다름).\",\n   \"u02의 email·upn·subject_seen이 서로 다르다(값이 다름).\",\n   \"u03의 email·upn·subject_seen이 서로 다르다(값이 다름).\"\n  ],\n  \"not_a_problem\": [\n   \"그룹 수가 OIDC 토큰 한도 200개를 넘는 사용자는 없다(최대 35개) — 그룹 클레임 한도 문제는 아니다.\"\n  ],\n  \"reference\": \"권장 구성(data/tenant_baseline.json)과 비교한 결과. 원인 판단은 findings만 근거로 한다\",\n  \"diff_from_reference\": [\n   {\n    \"path\": \"users[u01].subject_seen\",\n    \"reference\": \"kim.a@gasang.example\",\n    \"current\": \"251333c4-2a0d-5598-a525-83e83ad29e18\"\n   },\n   {\n    \"path\": \"users[u02].subject_seen\",\n    \"reference\": \"lee.b@gasang.example\",\n    \"current\": \"3f222e4c-cbb7-5f2e-93c0-e5cceb1d145f\"\n   },\n   {\n    \"path\": \"users[u03].subject_seen\",\n    \"reference\": \"park.c@gasang.example\",\n    \"current\": \"44aa926f-0d5b-5d89-8e95-f9678f444a2c\"\n   },\n   {\n    \"path\": \"wif_mapping.google_subject\",\n    \"reference\": \"assertion.email.lowerAscii()\",\n    \"current\": \"assertion.oid\"\n   }\n  ],\n  \"group_claim_check\": {\n   \"protocol\": \"OIDC\",\n   \"limit\": 200,\n   \"group_claims_filter\": \"groups_assigned_to_application\",\n   \"filter_limits_to_assigned_groups\": true,\n   \"users_over_limit\": []\n  },\n  \"identifier_check\": [\n   {\n    \"user_id\": \"u01\",\n    \"email_upn_subject\": \"값이 다름\",\n    \"email_changed_from_reference\": false,\n    \"has_uppercase\": false\n   },\n   {\n    \"user_id\": \"u02\",\n    \"email_upn_subject\": \"값이 다름\",\n    \"email_changed_from_reference\": false,\n    \"has_uppercase\": false\n   },\n   {\n    \"user_id\": \"u03\",\n    \"email_upn_subject\": \"값이 다름\",\n    \"email_changed_from_reference\": false,\n    \"has_uppercase\": false\n   }\n  ],\n  \"subject_mapping_check\": {\n   \"google_subject\": \"assertion.oid\",\n   \"email_based\": false,\n   \"lowercased\": false,\n   \"uses_object_id\": true\n  },\n  \"sites_check\": {\n   \"permission_mode\": \"Sites.Selected\",\n   \"sites_without_fullcontrol\": []\n  },\n  \"entra_app_check\": {\n   \"admin_consent\": true,\n   \"write_actions_enabled\": false,\n   \"write_scopes_present\": false\n  }\n },\n \"state\": {\n  \"tenant_name\": \"가상상사\",\n  \"connector\": \"Microsoft SharePoint (data ingestion)\",\n  \"instance_uri\": \"https://gasang.sharepoint.example\",\n  \"entra_app\": {\n   \"admin_consent\": true,\n   \"graph_permissions\": [\n    \"GroupMember.Read.All (Application)\",\n    \"User.Read (Delegated)\",\n    \"User.Read.All (Application)\",\n    \"Sites.Selected (Application)\"\n   ],\n   \"sharepoint_permissions\": [\n    \"Sites.Selected (Application)\"\n   ],\n   \"write_actions_enabled\": false,\n   \"write_scopes\": []\n  },\n  \"wif_mapping\": {\n   \"provider\": \"Entra ID (OIDC)\",\n   \"google_subject\": \"assertion.oid\",\n   \"google_groups\": \"assertion.groups\",\n   \"group_claims_filter\": \"groups_assigned_to_application\"\n  },\n  \"sharepoint\": {\n   \"permission_mode\": \"Sites.Selected\",\n   \"sites\": [\n    {\n     \"site_id\": \"site-hr\",\n     \"name\": \"인사팀\",\n     \"selected\": true,\n     \"fullcontrol_granted\": true\n    },\n    {\n     \"site_id\": \"site-sales\",\n     \"name\": \"영업팀\",\n     \"selected\": true,\n     \"fullcontrol_granted\": true\n    },\n    {\n     \"site_id\": \"site-rnd\",\n     \"name\": \"연구소\",\n     \"selected\": true,\n     \"fullcontrol_granted\": true\n    }\n   ]\n  },\n  \"users\": [\n   {\n    \"user_id\": \"u01\",\n    \"upn\": \"kim.a@gasang.example\",\n    \"email\": \"kim.a@gasang.example\",\n    \"subject_seen\": \"251333c4-2a0d-5598-a525-83e83ad29e18\",\n    \"group_count\": 12\n   },\n   {\n    \"user_id\": \"u02\",\n    \"upn\": \"lee.b@gasang.example\",\n    \"email\": \"lee.b@gasang.example\",\n    \"subject_seen\": \"3f222e4c-cbb7-5f2e-93c0-e5cceb1d145f\",\n    \"group_count\": 35\n   },\n   {\n    \"user_id\": \"u03\",\n    \"upn\": \"park.c@gasang.example\",\n    \"email\": \"park.c@gasang.example\",\n    \"subject_seen\": \"44aa926f-0d5b-5d89-8e95-f9678f444a2c\",\n    \"group_count\": 8\n   }\n  ],\n  \"sync_status\": {\n   \"state\": \"succeeded\",\n   \"last_success\": \"2026-11-24T22:00:00Z\"\n  },\n  \"recent_errors\": [\n   \"전체 사용자: 403 PERMISSION_DENIED\",\n   \"라이선스 사용량이 사용자 수의 2배로 표시\"\n  ]\n }\n}"
+   },
+   {
+    "doc_id": "fix:remap_subject_to_lower_email",
+    "text": "[fix:remap_subject_to_lower_email] 조치 목록(fix catalog) 항목 - WIF 공급자의 google.subject 매핑을 assertion.email.lowerAscii()로 바꾼다 (기존 사용자가 새 사용자로 취급될 수 있어 위험도 높음) (대상 장애 F3, 위험도 high). 이 조치는 관리자가 승인(approve)한 뒤에만 적용된다."
+   },
+   {
+    "doc_id": "ge-access-control#52",
+    "text": "[ge-access-control#52] IAM roles and permissions - Troubleshoot 401 and 403 sign-in errors (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n## Troubleshoot 401 and 403 sign-in errors\n\nThe following table lists common `401` and `403` sign-in errors and how to\nresolve them:\n\n| Error\n| Resolution\n\n|\n`401: Request had invalid authentication credentials`\n\n|\nSynchronize your device clock with an NTP server (even a 1-minute clock\nskew invalidates authentication tokens), clear your browser cookies, and\nretry in an incognito window.\n\n|\n`403: Forbidden / Permission Denied`\n\n|\nVerify the following in order:\n\n-\nThe user, federated `principal://`, or\n`principalSet://` identifier (not\n`user:EMAIL`) has the\n`roles/discoveryengine.agentspaceUser` or\n`roles/discoveryengine.user` role and an active license.\n\n-\nThird-party IdP group claims are within token limits. For example,\nMicrosoft Entra ID limits claims to 150 groups for SAML or 200\ngroups for OIDC. For more information, see Configure\nWorkforce Identity Federation with Microsoft Entra ID and a large\nnumber of groups and Configure\nattribute mapping.\n\n-\nGemini Enterprise is turned on for the user's organizational unit in\nthe Google Workspace Admin console.\n\n|\n`403: WidgetService.LookupWidgetConfig`\n(`The caller does not have permission`)"
+   },
+   {
+    "doc_id": "ge-sp-overview#05",
+    "text": "[ge-sp-overview#05] Overview - Required permissions (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n### Required permissions\n\nTo enable Gemini Enterprise to perform search and data ingestion using the Microsoft SharePoint data store, you need the following permissions:\n\n#### Microsoft Graph API permissions\n\nThe table below outlines the permissions required for each connection mode.\n\nNote: The following table outlines the permissions required for each connection mode. If you enable Actions for either the Federated search or Data ingestion connection mode, also select the permissions listed in the Actions row.\n\n| Connection mode\n| Scope\n| Purpose\n\n| Federated search\n| N/A\n| No Graph API permissions are required.\n\n| Data ingestion\n| `GroupMember.Read.All`\n| (Federated credentials & OAuth 2.0 refresh token) Allows the data store to read memberships and basic group properties for all groups without a signed-in user.\n\n| `User.Read`\n| (Federated credentials & OAuth 2.0 refresh token) Allows the data store to read the profile of signed-in users. It also allows the data store to read basic company information of signed-in users.\n\n| `User.Read.All`\n| (OAuth 2.0 refresh token only) Allows the data store to read user profiles."
+   },
+   {
+    "doc_id": "ge-sp-config#18",
+    "text": "[ge-sp-config#18] Microsoft SharePoint configuration - Users see \"Need admin approval\" when they connect (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n### Users see \"Need admin approval\" when they connect\n\nWhen users connect to Microsoft SharePoint from the Gemini Enterprise web\napp for the first time, Microsoft might show a Need admin approval\nscreen. This happens if Gemini Enterprise requests administrator-level\npermissions, or if your Microsoft Entra tenant prohibits users from authorizing\nthird-party apps without prior tenant-wide administrator consent.\n\nTo resolve this issue, an administrator must complete the first authorization.\nAfter that, other users in your tenant can connect without the approval screen.\n\n-\nAsk a Microsoft Entra ID administrator who can grant tenant-wide consent to\nsign in to the Gemini Enterprise web app and connect to\nMicrosoft SharePoint.\n\n-\nOn the permissions screen, have the administrator select Consent on behalf\nof your organization, and then click Accept.\n\n-\nAsk users to connect again.\n\nFor more information, see\nGrant tenant-wide admin consent\nin the Microsoft Entra documentation.\n\nNote: Deleting and re-creating the data store doesn't resolve this issue,\nbecause consent is granted in your Microsoft Entra tenant, not to the data store."
+   },
+   {
+    "doc_id": "ge-idp#28",
+    "text": "[ge-idp#28] Configure identity provider - Network and identity provider policies (Gemini Enterprise 공식 문서, CC BY 4.0, 수집 기준일 2026-11-25)\n### Network and identity provider policies\n\n- Proxies and firewalls: Proxies, firewalls, or secure web gateways that\ninspect TLS traffic can remove or change the `Authorization` header. Make sure\nthat these devices don't modify requests to Google domains.\n\n- Identity provider access policies: Check whether access policies in your\nidentity provider, such as Conditional Access policies in Microsoft Entra ID,\nblock sign-in because of device compliance, IP address ranges, or location.\n\n- Context-Aware Access: If your organization uses Context-Aware Access with Google Cloud or\nGoogle Workspace, check whether an IP-based access level blocks the\nrequests that Gemini Enterprise makes on the user's behalf. These\nrequests originate from Google's servers, not from the user's network, so\nthey don't match corporate IP ranges. Add an access level that allows the\nOAuth 2.0 client ID used by Gemini Enterprise, combined with the\nIP-based access level as an OR condition. Denied requests appear in your\norganization's audit logs for `contextawareaccess.googleapis.com`."
+   }
+  ],
+  "blob_has_raw": [],
+  "ragas": {
+   "faithfulness": 1.0,
+   "answer_relevancy": 0.232,
+   "llm_context_precision_with_reference": 0.583,
+   "context_recall": 1.0
+  }
+ }
+]

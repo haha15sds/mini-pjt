@@ -215,6 +215,7 @@ def main() -> None:
     ap.add_argument("--no-ragas", action="store_true")
     ap.add_argument("--ragas-model", default="", help="RAGAS 채점 LLM (기본: 에이전트 주 모델). 예: haiku")
     ap.add_argument("--rescore", default="", help="기존 결과 JSON의 RAGAS만 다시 채점 (에이전트 실행 없음)")
+    ap.add_argument("--out-dir", default="", help="[추가 구현] 결과 저장 폴더 (반복 실행용, 기본 evaluation/)")
     a = ap.parse_args()
     global RAGAS_MODEL
     if a.ragas_model:
@@ -255,7 +256,8 @@ def main() -> None:
     per = {} if a.no_ragas else ragas_scores(results)
     for r in results:
         r["ragas"] = per.get(r["id"])
-    out = ROOT / "evaluation"
+    out = Path(a.out_dir) if a.out_dir else ROOT / "evaluation"
+    out.mkdir(parents=True, exist_ok=True)
     (out / f"round{a.round}_results.json").write_text(json.dumps(results, ensure_ascii=False, indent=1), encoding="utf-8")
     if not a.ids:
         (out / f"round{a.round}_report.md").write_text(report(a.round, results, per, started, time.time() - t0), encoding="utf-8")

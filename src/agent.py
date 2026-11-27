@@ -301,14 +301,20 @@ def plan_runbook(state: State, config) -> dict:
     causes = []
     for c in d.causes:
         c.evidence_doc_ids = [x for x in c.evidence_doc_ids if x in ids]
-        doc_ev = [x for x in c.evidence_doc_ids if x != "tenant-state" and not x.startswith("fix:")]
-        if c.fault_id != "none" and not doc_ev:
+        if c.fault_id != "none":
+            # [개선 9차 후] 원인 중심 재검색을 모든 원인에 한다. 처음 검색어는 증상 문장에서 나와 일반 문제 해결 문서가
+            # 앞에 깔리고, 원인 근거 문서는 빠지거나 맨 뒤에 붙었다(context_precision P5 0.17·E1 0.23·P6 0.25·E4 0.33).
+            # 검색어는 장애 이름과 모델이 쓴 원인 설명이다. 평가 reference에 쓰는 evidence_note는 검색어에서 뺐다(평가 누설 방지).
             f = tenant.FAULTS[c.fault_id]
-            for ch in get_retriever().search([f["name"], f["evidence_note"]], k=2):
+            # 장애 F1~F6은 모두 SharePoint 커넥터 장애라 다른 커넥터 문서(Confluence)는 근거에서 뺀다.
+            # 반복 실행에서 E2(F2, 쓰기 scope)의 재검색 1위가 Confluence 'minimum application scopes'였다.
+            hits = [ch for ch in get_retriever().search([f["name"], c.reason], k=4) if not ch.doc_id.startswith("ge-confluence")]
+            for ch in hits[:2]:
                 if ch.chunk_id not in ids:
                     ctx.append(ctx_entry(ch))
                     ids.add(ch.chunk_id)
-                c.evidence_doc_ids.append(ch.chunk_id)
+                if ch.chunk_id not in c.evidence_doc_ids:
+                    c.evidence_doc_ids.insert(0, ch.chunk_id)
         if c.fault_id == "none" or c.evidence_doc_ids:
             causes.append(c)
     d.causes = causes
@@ -326,6 +332,15 @@ def plan_runbook(state: State, config) -> dict:
             ctx.append({"doc_id": f"fix:{fix_id}", "text": f"[fix:{fix_id}] 조치 목록(fix catalog) 항목 - {f['action']} "
                         f"(대상 장애 {f['fault_id']}, 위험도 {f['risk']}). 이 조치는 관리자가 승인(approve)한 뒤에만 적용된다.",
                         "title": "fix catalog", "section": fix_id, "url": ""})
+    # [개선 9차 후] contexts 순서: 원인 근거 문서(원인 순) → 테넌트 상태·조치 목록 → 나머지 검색 결과.
+    #  관리자가 읽는 근거 목록도 원인 근거가 앞에 오고, 순서를 보는 context_precision도 이 순서로 매긴다.
+    first = [x for c in d.causes for x in c.evidence_doc_ids if x != "tenant-state" and not x.startswith("fix:")]
+    rank = {x: i for i, x in enumerate(dict.fromkeys(first))}
+    def _order(c):
+        if c["doc_id"] in rank:
+            return (0, rank[c["doc_id"]])
+        return (1, 0) if c["doc_id"] == "tenant-state" or c["doc_id"].startswith("fix:") else (2, 0)
+    ctx = sorted(ctx, key=_order)
     dd = d.model_dump()
     # 원인 후보가 하나도 없으면(범위 밖·정상 테넌트) 불일치 안내는 붙이지 않는다 — 7차에서 N4(가격 문의)에 잘못 붙었다
     dd["mismatch"] = mismatch and any(c.fault_id != "none" for c in d.causes)

@@ -676,3 +676,48 @@
 🔧 run_eval --round 9 --ragas-model haiku (CHECKPOINT_DB=eval_ckpt.sqlite) → **18/18**, AC-1 4/4, AC-4 7/7, 유출 0, faithfulness 0.931(0.8 이상 9/11), answer_relevancy 0.314, context_recall 0.939.
 🔧 llm_judge → 4.82 · 5.00 · 4.73 · 5.00. E2 안전 5점 회복, 감점은 P2(정확 3·실행 2) 한 건, 이전과 같은 지적.
 🔧 반영: round9_report.md §5, README(RAGAS 9차 열·9차 줄·judge 줄), 대시보드 9차.
+
+### 110. 품질 추가 개선 검토
+
+👤 "에이전트 품질을 더 개선할 수 있을 지 검토해줘."
+🔧 6~9차 케이스별 RAGAS 비교: context_precision이 4개 라운드 내내 케이스별로 완전히 같음(검색은 결정적이고 그동안 손대지 않음, P5 0.17·E1 0.23·P6 0.25·E4 0.33이 낮음). faithfulness는 코드가 같아도 케이스별로 크게 흔들림(P6 0.87→0.67→0.53→1.00). answer_relevancy 0.17~0.50.
+🔧 제안(구현 전, 합의 대기): ① 반복 실행으로 평가 편차 측정 ② 검색 순위 개선(context_precision) ③ 코드 템플릿 결론 한 줄(answer_relevancy) ④ 처음 보는 문의로 일반화 점검. 비추천: M01 규칙화(과적합), P2 judge 맞추기.
+
+### 111. 1·2번 진행 (반복 실행 편차 + 검색 순위 개선) — 중단, 내일 이어서
+
+👤 "1,2번 진행" → 도중에 "멈춰. 내일 다시하자. 요청한도 걸렸잖아."
+🔧 run_eval.py에 `--out-dir`(반복 실행 결과 폴더) 추가. evaluation/repeat_summary.py(3회 중앙값·범위, 케이스별 전→후) 작성.
+🔧 검색 개선(src/agent.py plan_runbook, [개선 9차 후] 주석): ① 원인 중심 재검색을 모든 원인에 수행, 검색어는 장애 이름+모델의 원인 설명(평가 reference인 evidence_note는 검색어에서 제외 — 평가 누설 방지) ② contexts 순서를 원인 근거 문서 → 테넌트 상태·조치 목록 → 나머지로 정렬.
+🔧 반복 실행: 개선 전 3회(9차+2회), 개선 후 3회 모두 18/18, AC-4 7/7. 동시 실행으로 RAGAS 채점 일부가 Bedrock 한도·시간 초과로 빠져 개선 후 2·3회차는 단독 재채점(_rescored). 잠정 결과: context_precision 중앙값 0.515 → 0.798(P5 0.17→0.94, E1 0.23→0.87), faithfulness 0.886 → 0.885(변화 없음), context_recall 0.939 유지. E2 context_precision 0.67→0.42 하락은 확인 필요.
+🔧 미완료: 개선 전 2·3회차 재채점(빠진 값 22개, 사용자 중단), 보고서·README·대시보드 반영, judge, 커밋. Bedrock 요청 한도로 내일 이어서.
+
+### 112. 공유 저장소(sds-ax-training) 하위 폴더로 올리는 안 — 영향 검토
+
+👤 "haha15sds/sds-ax-training/mini-pjt 폴더로 구성해서 올리면 안될까? 그럼 public 추가로 쓸 필요없잖아. 영향을 검토해줘라."
+🔧 확인(읽기만): 저장소는 비공개(비로그인 API 404), 관리자 gio155가 CODEOWNERS. day08/README.md가 미니PJT 제출 위치를 `miniprj/`(README.md·app.py=POST /query·eval_set.json 20문항+, no_answer 2+·guardrail 2+)와 커밋 `[제출] MiniPJT`로 정해 둠 — Google Form 안내(`mini-pjt_{이름}`, GitHub URL 또는 zip)와 다름. grading/day08.json은 draft(자동 12점+사람 8점). 자가 확인 워크플로는 day01~07 변경만 감지, pytest testpaths도 day01~07 → 새 폴더 영향 없음. 루트 .gitignore가 .env·.venv·chroma_db 제외, 미니 폴더 .gitignore도 적용. 올라갈 파일 87개 5.2MB.
+🔧 결론: 가능하고 오히려 저장소 자체 안내와 맞음. 단 ① 어느 규칙을 따를지(폴더명 miniprj vs mini-pjt_{이름}, app.py·eval_set.json 형식) ② 비공개 저장소 URL을 채점자 전원이 열 수 있는지를 강사에게 먼저 확인. 옮길 때는 .git을 통째로 복사하면 서브모듈 링크만 올라가므로 `git subtree add`로 이력 보존. `[제출]` 접두어 커밋은 공식 채점을 부르므로 최종 제출 때만.
+
+### 113. day08 저장소 안내 vs Google Form 안내 vs Day1~7 제출 방식
+
+👤 "day08 안내는 miniprj/ 폴더와 [제출] MiniPJT 안내와 차이가 먼대? ~day07 까지 과제제출과 다른게 있는가?"
+🔧 확인: Day1~7은 `dayNN/practice/starter/submission.py` + 커밋 메시지 자유 + 태그 `dayNN-submit` push로 자동 채점(실제 태그 day01~07-submit 존재). day08/README는 `miniprj/`(README·app.py POST /query·eval_set.json 20+) + 커밋 `[제출] MiniPJT` + 자동 12·사람 8점, "세부는 Day7 끝에 강사가 따로 안내"라고 적힌 초안(day09·10 README는 TODO, grading/day08.json draft). 워크플로 주석은 `[제출] DayN` 커밋이라 하지만 Day1~7 실제 방식은 태그 → 저장소 안 안내끼리도 어긋남. 따로 받은 Google Form 안내(`mini-pjt_{이름}`, test_queries.csv 18건, RAGAS 리포트, GitHub URL/zip + 캡처)가 나중의 구체 안내로 판단.
+
+### 114. sds-ax-training에 올림
+
+👤 "mini-pjt-haha15 폴더로 sds-ax-training에 올려줘." → 폴더 이름은 규약대로 밑줄 `mini-pjt_haha15`로 확정(사용자 선택).
+🔧 민감 정보 점검(.env·sqlite·키 패턴·개인 메일 없음) 후 sds-ax-training에서 `git subtree add --prefix=mini-pjt_haha15 ../mini-pjt_haha15 master` → 로컬 이력(eb3e35f까지) 보존, 87개 파일. `git push origin main` (fab4f16..4c8bdf4). 커밋에 `[제출]` 접두어·태그 없음(공식 채점 미호출).
+🔧 올라간 것은 커밋된 9차 버전. 검색 개선(원인 중심 재검색)·반복 실행·§110~114 기록은 미커밋 상태로 로컬에 남음 → 마무리 후 `git subtree pull --prefix=mini-pjt_haha15 ../mini-pjt_haha15 master`로 반영.
+🔧 남은 결정: public 전제 문서(planning C-1·D-10, seed, agents.md) 수정, Google Form에 낼 URL(https://github.com/haha15sds/sds-ax-training/tree/main/mini-pjt_haha15, 비공개 저장소라 채점자 접근 확인 필요).
+
+### 115. zip 압축
+
+👤 "zip압축해주라."
+🔧 `git archive --prefix=mini-pjt_haha15/ HEAD` → `../mini-pjt_haha15.zip`(1.3MB, 커밋 eb3e35f = GitHub에 올린 버전과 같음, 파일 87개). .env·sqlite·.venv·chroma_db 없음 확인. 미커밋 검색 개선은 미포함.
+
+### 116. Day 10 — 검색 개선 마무리 (반복 실행 재채점, E2 원인, 10차)
+
+👤 "안녕? 오늘이다. 10일차." → "우선 1~3번을 수행하고, 과제제출 준비를 하려고해."
+🔧 개선 전 2·3회차 RAGAS 단독 재채점(빠진 값 0) → 반복 집계 확정: context_precision 0.512(0.512~0.512) → 0.798(0.768~0.810), faithfulness 0.895(0.840~0.931) → 0.885(0.863~0.887), 6회 모두 18/18·7/7.
+🔧 E2 하락 원인: F2 재검색 1위가 Confluence 'minimum application scopes'(다른 커넥터). 원인 재검색에서 ge-confluence 문서 제외(k=4 검색 후 상위 2개).
+🔧 정식 10차(최종 코드): 18/18, AC-1 4/4, AC-4 7/7, 유출 0, context_precision 0.834, faithfulness 0.866, recall 0.939, judge 5.00 · 5.00 · 4.82 · 5.00 → 개선 채택.
+🔧 반영: round10_report §5, repeat_report 결론, README(RAGAS 10차 열·10차 줄·반복 실행 줄·judge), 대시보드 10차.
