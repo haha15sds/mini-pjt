@@ -27,7 +27,7 @@ def _run_react(state: State, config) -> dict:
     llm_tools = llm_main.bind_tools(TOOLS).with_fallbacks([llm_main_g.bind_tools(TOOLS)])
     contexts, proposed, trace = [], [], []
     for step in range(MAX_STEPS):
-        ai = llm_tools.invoke(msgs)
+        ai = llm_tools.invoke(msgs, config=config)   # [수정] 별도 스레드에서도 그래프 트레이스(LangSmith) 아래에 기록되도록 노드 config 를 넘긴다
         msgs.append(ai)
         if not ai.tool_calls:
             break

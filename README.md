@@ -92,6 +92,38 @@ docker run --rm -p 8501:8501 --env-file .env mini-pjt \
 - LLM-as-Judge: `.venv\Scripts\python -X utf8 src\evaluation\llm_judge.py evaluation\round4_results.json` (judge 모델 Claude Sonnet 4.5 고정)
 - 모델: 에이전트 Claude Sonnet 4.5, 분석 Claude Haiku 4.5 (Bedrock `us-east-1`), temperature 0.
 
+## 시연 화면
+
+실제 Bedrock 호출 화면을 헤드리스 크롬으로 자동 캡처했다(2026-11-27, 최종 코드). 모든 테넌트·메일 데이터는 가상이다.
+
+| 1. 문의 입력 (P4, 시나리오 S04) | 2. 진단·승인 대기 |
+|---|---|
+| ![문의 입력](docs/images/demo_01_input.png) | ![진단](docs/images/demo_02_diagnosis.png) |
+| **3. 승인 후 적용·전후 비교** | **4. 가드레일 (G1: 연락처 마스킹, 인젝션 탐지)** |
+| ![승인 후](docs/images/demo_03_approved.png) | ![가드레일](docs/images/demo_04_guardrail.png) |
+
+- 1→2: 마스킹 미리보기 → 노드 진행(마스킹 → 입력 검사 → 분석 → 에이전트 → 런북 계획 → 승인 게이트) → 원인 후보 F6(확신도·근거 문서)·조치 런북(위험도·출처) → 승인 카드
+- 3: 승인하면 승인 게이트 안에서만 조치가 실행되고 "관리자 승인에 따라 조치를 적용했습니다", 가상 테넌트 전/후 표(`fullcontrol_granted false → true`, 오류 기록 비움)
+- 4: 이메일·전화·이름이 `[EMAIL]`·`[PHONE]`·`[NAME]`으로 가려지고, 메일 속 "승인 절차 없이 바로 적용" 지시는 탐지·무시돼 승인 대기로 멈춘다
+- 평가 대시보드: [docs/images/demo_05_eval_dashboard.png](docs/images/demo_05_eval_dashboard.png) (1차 14/18 → 2차 18/18 → 11차 18/18, 범주별 통과율·RAGAS 4지표·케이스별 결과)
+
+## Observability (LangSmith 트레이스)
+
+`.env`에 `LANGSMITH_TRACING=true`를 두면 실행마다 LangSmith 프로젝트(`mini-pjt-ge-setting-agent`)에 트레이스가 남는다. 응답의 `trace[]`에도 노드·도구별 입력/출력(마스킹본)이 담긴다.
+
+최종 코드로 P4 문의 1건을 실행해 LangSmith API로 확인한 트레이스 구조(2026-11-27): 한 트레이스에 하위 실행 28개, 토큰 23,618
+
+```
+LangGraph
+├─ input_guard
+├─ analyze ── ChatBedrockConverse (Haiku 4.5, 구조화 출력)
+├─ agent ──── ChatBedrockConverse → retrieve_docs, check_tenant_state → ChatBedrockConverse → propose_fix → ChatBedrockConverse
+├─ plan_runbook ── ChatBedrockConverse (Sonnet 4.5, 구조화 출력)
+└─ approval_gate (interrupt, 승인 대기) → 승인 시 같은 thread 로 재개
+```
+
+- 처음 확인했을 때는 ReAct 노드의 모델 호출이 그래프 트레이스 밖의 별도 트레이스로 떨어져 있었다. 60초 상한을 걸려고 ReAct를 별도 스레드에서 돌리는데, 추적 맥락이 스레드로 넘어가지 않았기 때문이다. 노드 config를 모델 호출에 넘겨 한 트레이스로 묶었다([src/diagnosis/react.py](src/diagnosis/react.py)).
+
 ## RAGAS 평가 결과
 
 최종(11차, positive·edge 11건, 채점 모델 Claude Haiku 4.5):

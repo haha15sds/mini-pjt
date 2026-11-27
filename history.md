@@ -774,3 +774,11 @@
 
 🔧 11차 재실행: **18/18**, AC-1 4/4, AC-4 7/7, 유출 0, faithfulness 0.851, context_precision 0.829, recall 0.939, answer_relevancy 0.298, judge 5.00 · 5.00 · 5.00 · 5.00. round11_report §5, README(RAGAS 최종 11차·11차 줄·개선폭·judge), 대시보드 11차 반영.
 👤 "zip은 안해도 됨. 과제제출은 github만 할거야." → zip 생성 생략.
+
+### 124. 시연 캡처와 LangSmith 트레이스 확인
+
+👤 "1, 2번 너가 할 수 있지 않니?" (LangSmith 캡처, 시연 캡처)
+🔧 캡처용 Streamlit을 8502에 띄우고(다른 세션 8501과 분리), Node 내장 WebSocket으로 헤드리스 크롬을 DevTools 프로토콜로 조작해 실제 Bedrock 호출 화면 5장 저장(docs/images/demo_01~05). 시행착오: 예시 선택 상자 — 라벨 탐색 실패 → 입력칸 초점 + 항목 클릭, 선택 확인은 input.value로 / 승인 버튼이 화면 밖 → scrollIntoView, 창 높이 2300.
+🔧 캡처로 찾은 것: 평가 대시보드 상단 숫자가 라운드 11개라 "1…"로 잘림 → 1차·2차·최종·목표만 숫자로(app.py). G1 요약 첫 글자 깨짐("테�anten트")은 재촬영에서 재현 안 됨(모델 출력 1회 흔들림).
+🔧 LangSmith: 프로젝트 mini-pjt-ge-setting-agent에 기록 확인. ReAct 노드의 모델 호출이 그래프 밖 별도 트레이스(RunnableWithFallbacks)로 떨어져 있었음 — 60초 상한용 별도 스레드로 추적 맥락이 안 넘어감 → `llm_tools.invoke(msgs, config=config)`로 수정, 재실행해 한 트레이스(하위 28개, 토큰 23,618)에 input_guard→analyze→agent(모델·도구 3종)→plan_runbook→approval_gate가 묶인 것 확인.
+🔧 README에 '시연 화면'(이미지 4장+대시보드 링크)과 'Observability' 절 추가. LangSmith 화면 자체는 로그인이 필요해 캡처 못 함 → 공개 공유 링크는 사용자 확인 후.

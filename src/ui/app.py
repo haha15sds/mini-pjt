@@ -311,9 +311,13 @@ with tab_eval:
     if not rounds:
         st.info("평가 결과가 없습니다. `python evaluation/run_eval.py --round 1` 을 먼저 실행하세요.")
     else:
-        cols = st.columns(len(rounds) + 1)
-        for col, (name, res) in zip(cols, rounds.items()):
-            col.metric(f"{name} 통과", f"{sum(r['passed'] for r in res)} / {len(res)}")
+        # [수정] 라운드가 11개로 늘어 숫자 칸이 잘렸다("1…"). 1차·2차(과제 규약)와 최종 차수만 숫자로 보이고 전체는 아래 차트에 둔다
+        names = list(rounds)
+        show = [n for n in dict.fromkeys(names[:2] + names[-1:])]
+        cols = st.columns(len(show) + 1)
+        for col, name in zip(cols, show):
+            res = rounds[name]
+            col.metric(f"{name}{' (최종)' if name == names[-1] else ''} 통과", f"{sum(r['passed'] for r in res)} / {len(res)}")
         cols[-1].metric("목표 (2차 이후)", "15 / 18")
         cat = []
         for name, res in rounds.items():
